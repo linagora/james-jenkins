@@ -13,16 +13,31 @@ your jenkins or any future jenkins will make them run.
 
 == How to use it
 
-To start a jenkins instance, you just have to do :
+We want our TLS keys to be in an other container. This allows us to publish our Jenkins stateless container, and to be able to easily change the TLS keys. Jenkins container will use the --volumes-from when run to access certificates.
+
+ - First put your TLS keys in the $PWD/keys folder
+
+To construct the key holding container :
+
+----
+$docker build -f DockerFileKeyContainer -t keys .
+$docker run -v /keys --name keys keys
+----
+
+We will then add a container for caching maven repositories ( accelerate builds, avoid errors on maven failing retrieving its dependencies ) 
+:
+
+----
+$docker build -f DockerFileMavenCache -t maven-cache .
+$docker run -v /root/.m2 --name maven-cache -e affinity:container==keys maven-cache
+----
+
+To start a jenkins instance, you now just have to do :
 
 ----
 $docker build --tag myjenkins .
-$docker run -d -p 8080:8080 -v $PWD/keys:/keys --name jks myjenkins
+$docker run -p 8080:8080 --volumes-from keys --name jks myjenkins
 ----
-
-Where:
-
-- +$PWD/keys:/keys+: Is the folder containing keys to connect your SWARM cluster. It should contain "ca.pem", "cert.pem", "key.pem".
 
 Then, you can open it in your browser :
 
