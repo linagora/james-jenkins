@@ -1,11 +1,14 @@
-job('DSL-Build-Greenmail') {
+job('DSL-Build-James') {
     scm {
-        git('git://github.com/linagora/greenmail')
+        git('https://ci.open-paas.org/stash/scm/jwc/james-parent.git','sprint6-0')
     }
     triggers {
         scm('*/15 * * * *')
     }
     steps {
-        maven('-e clean test')
+        shell('docker -H tcp://62.210.100.33:3676 --tls=true --tlscacert=/keys/ca.pem --tlskey=/keys/key.pem --tlscert=/keys/cert.pem build 
+-t james/parent .')
+        shell('docker -H tcp://62.210.100.33:3676 --tls=true --tlscacert=/keys/ca.pem --tlskey=/keys/key.pem --tlscert=/keys/cert.pem run 
+-v $PWD/.m2:/root/.m2 -v $PWD:/origin -v $PWD/destination:/destination -t james/parent sptint6-0 skipTests')
     }
 }
