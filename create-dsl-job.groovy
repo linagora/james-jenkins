@@ -8,7 +8,7 @@ jobName = "create-dsl-job";
 gitTrigger = new SCMTrigger("* * * * *");
 dslBuilder = new ExecuteDslScripts(scriptLocation=new ExecuteDslScripts.ScriptLocation(value = "false", targets="build-script", scriptText=""), ignoreExisting=false, removedJobAction=RemovedJobAction.DISABLE);
 dslProject = new hudson.model.FreeStyleProject(jenkins, jobName);
-dslProject.scm = new GitSCM("https://ci.open-paas.org/stash/scm/jwc/jenkins.git");
+dslProject.scm = new GitSCM("https://ci.open-paas.org/stash/scm/~btellier/jenkins.git");
 dslProject.addTrigger(gitTrigger);
 dslProject.createTransientActions();
 dslProject.getPublishersList().add(dslBuilder);
