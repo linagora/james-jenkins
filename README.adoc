@@ -17,8 +17,12 @@ To start a jenkins instance, you just have to do :
 
 ----
 $docker build --tag myjenkins .
-$docker run --rm -ti --name jks myjenkins
+$docker run -d -p 8080:8080 -v $PWD/keys:/keys --name jks myjenkins
 ----
+
+Where:
+
+- +$PWD/keys:/keys+: Is the folder containing keys to connect your SWARM cluster. It should contain "ca.pem", "cert.pem", "key.pem".
 
 Then, you can open it in your browser :
 
