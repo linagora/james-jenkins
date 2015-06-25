@@ -2,3 +2,4 @@ job-dsl:1.34
 git:2.3.5
 git-client:1.16.1
 scm-api:0.2
+envinject:1.91.3
