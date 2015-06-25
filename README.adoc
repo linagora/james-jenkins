@@ -1,0 +1,28 @@
+= Immutable CI
+
+== Summary
+
+This project aims at describing our CI using jenkins DSL Plugin.
+
+It starts Jenkins with Git and DSL Plugins, fetch a git repository to retrieve
+the DSL configuration and finally make sure this DSL is run at start and
+on every changes.
+
+That way, you just have to write your jobs in `build-script` file and
+your jenkins or any future jenkins will make them run.
+
+== How to use it
+
+To start a jenkins instance, you just have to do :
+
+----
+$docker build --tag myjenkins .
+$docker run --rm -ti --name jks myjenkins
+----
+
+Then, you can open it in your browser :
+
+----
+$firefox http://`docker inspect --format {{.NetworkSettings.IPAddress}} jks`:8080
+----
+
