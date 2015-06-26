@@ -1,0 +1,11 @@
+job('DSL-Build-Greenmail') {
+    scm {
+        git('git://github.com/linagora/greenmail')
+    }
+    triggers {
+        scm('*/15 * * * *')
+    }
+    steps {
+        maven('-e clean test')
+    }
+}
