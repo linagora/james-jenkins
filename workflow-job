@@ -2,11 +2,13 @@ import java.util.List
 import java.util.ArrayList
 import java.util.UUID
 
-def branches = ['Issue-195']
+// This script must be called with a $branches parameter : branches to build specified as a String Array
+// This script must be called with a $projectCode parameter : specifies the path to the code to use
+
 def dockerIp = '62.210.100.33'
-def repoURL = 'https://github.com/chibenwa/james-parent'
 def hostname = 'james.linagora.com'
 def maxRetries = 60
+def repoURL = "https://ci.open-paas.org/stash/scm/${projectCode}/james-parent.git"
 
 public class Images implements Serializable {
     def cassandra = 'cassandra'

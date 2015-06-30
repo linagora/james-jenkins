@@ -1,6 +1,8 @@
-job-dsl:1.34
+envinject:1.91.3
 git:2.3.5
 git-client:1.16.1
+job-dsl:1.34
+maven-plugin:2.7.1
 scm-api:0.2
 workflow-step-api:1.8
 git-server:1.6
@@ -16,3 +18,7 @@ workflow-cps-global-lib:1.8
 workflow-job:1.8
 workflow-basic-steps:1.8
 workflow-aggregator:1.8
+stash-pullrequest-builder:1.3.1
+ssh-agent:1.7
+stashNotifier:1.8
+parameterized-trigger:2.27

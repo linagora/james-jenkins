@@ -1,0 +1,41 @@
+def STASH_URL = 'https://ci.open-paas.org/stash'
+def REPOSITORIES = ['james', 'james-jdkim', 'james-jsieve', 'james-jspf', 'james-mailbox', 'james-mailet', 'james-mime4j',
+    'james-mpt', 'james-parent', 'james-postage', 'james-project', 'james-protocols', 'open-paas-mailet']
+
+REPOSITORIES.each {
+    def repository = it
+    job(repository) {
+        triggers {
+            stashPullRequestTrigger {
+                cron('* * * * *')
+                stashHost(STASH_URL)
+                username('james-jenkins')
+                password('abcdef')
+                projectCode('JWC')
+                repositoryName(repository)
+                checkDestinationCommit(true)
+                checkMergeable(true)
+                checkNotConflicted(true)
+                ciBuildPhrases('test this please')
+            }
+        }
+        steps {
+            downstreamParameterized {
+                trigger('workflow-job', 'ALWAYS', false,
+                    [buildStepFailure: 'FAILURE',
+                     failure         : 'FAILURE',
+                     unstable        : 'UNSTABLE']) {
+                    predefinedProps([projectCode: '${projectCode}', branches: ['${sourceBranch}']])
+                }
+            }
+        }
+        publishers {
+            stashNotifier {
+                stashServerBaseUrl(STASH_URL)
+                stashUserName('james-jenkins')
+                stashUserPassword('abcdef')
+                ignoreUnverifiedSSLPeer(true)
+            }
+        }
+    }
+}
