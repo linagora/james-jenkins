@@ -20,10 +20,9 @@ jenkins.add(workflowJob, workflowJob.name);
 
 jobName = "create-dsl-job";
 gitTrigger = new SCMTrigger("* * * * *");
-dslBuilder = new ExecuteDslScripts(scriptLocation=new ExecuteDslScripts.ScriptLocation(value = "false", targets="build-script", scriptText=""), ignoreExisting=false, 
-removedJobAction=RemovedJobAction.DISABLE);
-dslProject = new FreeStyleProject(jenkins, jobName);
-dslProject.scm = new GitSCM("https://github.com/lingora/james-jenkins.git");
+dslBuilder = new ExecuteDslScripts(scriptLocation=new ExecuteDslScripts.ScriptLocation(value = "false", targets="build-stash-script", scriptText=""), ignoreExisting=false, removedJobAction=RemovedJobAction.DISABLE);
+dslProject = new hudson.model.FreeStyleProject(jenkins, jobName);
+dslProject.scm = new GitSCM("https://ci.open-paas.org/stash/scm/~aduprat/jenkins.git");
 dslProject.addTrigger(gitTrigger);
 dslProject.createTransientActions();
 dslProject.getPublishersList().add(dslBuilder);
