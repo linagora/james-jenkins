@@ -13,9 +13,17 @@ your jenkins or any future jenkins will make them run.
 
 == How to use it
 
-We want our TLS keys to be in an other container. This allows us to publish our Jenkins stateless container, and to be able to easily change the TLS keys. Jenkins container will use the --volumes-from when run to access certificates.
+We want our TLS keys to be in an other container. This allows us to publish our
+ Jenkins stateless container, and to be able to easily change the TLS keys. 
+Jenkins container will use the --volumes-from when run to access certificates.
 
  - First put your TLS keys in the $PWD/keys folder
+
+You are expected to provide :
+
+ - ca.pem : The CA of your server certificate
+ - cert.pem : Your client certificate
+ - key.pem : The key used to generate client certificate
 
 To construct the key holding container :
 
@@ -24,8 +32,8 @@ $docker build -f DockerFileKeyContainer -t keys .
 $docker run -v /keys --name keys keys
 ----
 
-We will then add a container for caching maven repositories ( accelerate builds, avoid errors on maven failing retrieving its dependencies ) 
-:
+We will then add a container for caching maven repositories ( accelerate builds, 
+avoid errors on maven failing retrieving its dependencies ) :
 
 ----
 $docker build -f DockerFileMavenCache -t maven-cache .
@@ -45,3 +53,20 @@ Then, you can open it in your browser :
 $firefox http://`docker inspect --format {{.NetworkSettings.IPAddress}} jks`:8080
 ----
 
+Note : If you want to use james deploy script, you need to have a docker container 
+with the James TLS certificates. 
+
+First copy James TLS certificate to this directory. Or you can generate them using :
+
+----
+$keytool -genkey -alias james -keyalg RSA -keystore keystore
+----
+
+Be sure that the password you provide matches with James configuration.
+
+Run these command to set up this container on nodes that will hosts James servers :
+
+----
+$docker build -f DockerfileJamesTlsKeyContainer -t keystore .
+$docker run -v /keys --name keystore keystore
+----
