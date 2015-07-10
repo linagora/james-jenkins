@@ -1,0 +1,109 @@
+import java.util.List
+import java.util.ArrayList
+import java.util.UUID
+
+def branches = ['master']
+
+public class ImageBaseNames implements Serializable {
+    def cassandra = 'cassandra'
+    def elasticSearch = 'elasticsearch:1.5.2'
+    def jamesCompile = 'james-parent-compile'
+    def james = 'james-server'
+    def integration = 'integration'
+}
+
+public class ContainerBaseNames implements Serializable {
+    def keystore = 'keystore'
+    def jamesCompile = 'james-parent-compile'
+    def cassandra = 'cassandra'
+    def elasticSearch = 'elasticSearch'
+    def james = 'james-server'
+    def integration = 'integration'
+}
+
+def dockerIp = '62.210.100.33'
+def repoURL = 'https://ci.open-paas.org/stash/scm/jwc/james-parent.git'
+def hostname = 'james.linagora.com'
+def imageBaseNames = new ImageBaseNames();
+def containerBaseNames = new ContainerBaseNames();
+def zipPath = '/destination/james-server-app-3.0.0-beta5-SNAPSHOT-app.zip' 
+def keystorePath = '/keys/keystore'
+def jamesCliWithOptions = "/root/james-server-app-3.0.0-beta5-SNAPSHOT/bin/james-cli.sh -h 127.0.0.1 -p 9999"
+
+def executeCommand (command) {
+   try {
+       sh "${command}"
+   } catch (Exception e) {
+       echo "Error deleting ${name} : ${e.getMessage()}"
+   }
+}
+def deleteImage = { name -> executeCommand("docker rmi -f ${name}") }
+def deleteContainer = { name -> executeCommand("docker rm -fv ${name}") }
+
+env.DOCKER_HOST = "tcp://${dockerIp}:2376"
+env.DOCKER_CERT_PATH = '/keys/'
+env.DOCKER_TLS_VERIFY = 'TRUE'
+
+def flows = [:]
+
+branches.each {
+    flows["${it}"] = {
+        def branch = it
+        def buildId = "${branch.toLowerCase()}-${UUID.randomUUID()}"
+        def compileName = containerBaseNames.jamesCompile + buildId
+        def compileImageName = imageBaseNames.jamesCompile + buildId
+        def cassandraName = containerBaseNames.cassandra + buildId
+        def elasticSearchName = containerBaseNames.elasticSearch + buildId
+        def jamesName = containerBaseNames.james + buildId
+        def jamesImageName = imageBaseNames.james + buildId
+        def integrationName = containerBaseNames.integration + buildId
+        def useMavenCache = '--volumes-from maven-cache-deploy'
+        def jamesLinks = "--link ${cassandraName}:cassandra --link ${elasticSearchName}:elasticsearch"
+        def findImapPort = "export JAMES_PORT=`docker port ${jamesName} 143 | cut -d ':' -f 2`"
+        def integrationArguments = "${repoURL} ${branch} ${dockerIp} \$JAMES_PORT"
+        
+        try {
+            node {
+                echo "Building ${buildId}"
+                git url: repoURL, branch: branch
+                sh "docker build -t ${compileImageName} ."
+                sh "docker run --name=${compileName} ${useMavenCache} -v /destination -t ${compileImageName} -s -u ${repoURL} ${branch}"
+            }
+            node {
+                echo "Deploying ${buildId}"
+                sh "docker cp ${containerBaseNames.keystore}:${keystorePath} destination/conf"
+                sh "docker cp ${compileName}:${zipPath} destination"
+                
+                sh "docker run -d --name=${cassandraName} ${imageBaseNames.cassandra}"
+                sh "docker run -d --name=${elasticSearchName} ${imageBaseNames.elasticSearch}"
+                sh "docker build -f JamesRunDockerfile -t ${jamesImageName} ./"
+                sh "docker run -d --name=${jamesName} --hostname ${hostname} --expose=143 -P=true ${jamesLinks} -t ${jamesImageName}"
+                
+                echo 'Waiting for James server to be deployed'
+                sh "sleep 60"
+                sh "docker logs ${jamesName}"
+            }
+            node {
+                echo "Configuring James Server"
+                sh "docker exec ${jamesName} ${jamesCliWithOptions} adddomain domain"
+                sh "docker exec ${jamesName} ${jamesCliWithOptions} adduser imapuser@domain password"
+                
+                echo "Running integration tests on ${buildId}"
+                sh "${findImapPort} && docker run -t --name=${integrationName} --entrypoint=\"/root/integration_tests.sh\" ${useMavenCache} ${compileImageName} ${integrationArguments}"
+            }
+        } finally {
+            node {
+                echo "Cleaning ${buildId}"
+                deleteContainer(compileName)
+                deleteContainer(cassandraName)
+                deleteContainer(elasticSearchName)
+                deleteContainer(integrationName)
+                deleteContainer(jamesName)
+                deleteImage(compileImageName)
+                deleteImage(jamesImageName)
+            }
+        }
+    }
+}
+
+parallel flows
