@@ -1,0 +1,134 @@
+import java.util.List
+import java.util.ArrayList
+import java.util.UUID
+
+def branches = ['plop-199']
+def dockerIp = '62.210.100.33'
+def repoURL = 'https://ci.open-paas.org/stash/scm/jwc/james-parent.git'
+def hostname = 'james.linagora.com'
+def maxRetries = 60
+
+public class Images implements Serializable {
+    def cassandra = 'cassandra'
+    def elasticSearch = 'elasticsearch:1.5.2'
+    def buildId;
+    def jamesCompile;
+    def james;
+    
+    public Images(String buildId) {
+        jamesCompile = 'james-parent-compile-' + buildId;
+        james = 'james-server-' + buildId;
+    }
+}
+
+public class Containers implements Serializable {
+    def keystore = 'keystore';
+    def cassandra;
+    def elasticSearch;
+    def integration;
+    def jamesCompile;
+    def james;
+
+    public Containers(String buildId) {
+        cassandra = 'cassandra-' + buildId;
+        elasticSearch = 'elasticSearch-' + buildId;
+        integration = 'integration-' + buildId;
+        jamesCompile = 'james-parent-compile-' + buildId;
+        james = 'james-server-' + buildId;
+    }
+}
+
+def zipPath = '/destination/james-server-app-3.0.0-beta5-SNAPSHOT-app.zip' 
+def keystorePath = '/keys/keystore'
+def jamesCliWithOptions = '/root/james-server-app-3.0.0-beta5-SNAPSHOT/bin/james-cli.sh -h 127.0.0.1 -p 9999'
+def useMavenCache = '--volumes-from maven-cache-deploy'
+
+def executeCommand (command) {
+   try {
+       sh "${command}"
+   } catch (Exception e) {
+       echo "Error executing ${command} : ${e.getMessage()}"
+       e.printStackTrace();
+   }
+}
+def deleteImage = { name -> executeCommand("docker rmi --force=true ${name}") }
+def deleteContainer = { name -> executeCommand("docker rm --force=true --volumes=true ${name}") }
+def waitForCommandSuccess (command, maxRetries) {
+    def tries = 0;
+    while (tries++ < maxRetries) {
+        try {
+            sh command
+            return true
+        } catch (Exception e) {
+            if (tries >= maxRetries) {
+                throw new Exception("${} tries exceeded. ${command} failed.", e)
+            }
+            sh "sleep 1"
+        }
+    }
+}
+
+env.DOCKER_HOST = "tcp://${dockerIp}:2376"
+env.DOCKER_CERT_PATH = '/keys/'
+env.DOCKER_TLS_VERIFY = 'TRUE'
+
+def flows = [:]
+
+echo "Check 1"
+
+branches.each {
+    flows["${it}"] = {
+        def branch = it
+        def buildId = "${branch.toLowerCase()}-${UUID.randomUUID()}"
+        def images = new Images(buildId);
+        def containers = new Containers(buildId);
+        def jamesLinks = "--link ${containers.cassandra}:cassandra --link ${containers.elasticSearch}:elasticsearch"
+        def findImapPort = "export JAMES_PORT=`docker inspect -f '{{(index (index .NetworkSettings.Ports \"143/tcp\") 0).HostPort}}' ${containers.james}`"
+        def integrationArguments = "${repoURL} ${branch} ${dockerIp} \$JAMES_PORT"
+        
+        try {
+            node {
+                echo "Building ${buildId}"
+                git url: repoURL, branch: branch
+                sh "docker build --tag=${images.jamesCompile} ."
+                sh "docker run --name=${containers.jamesCompile} ${useMavenCache} --volume=/destination ${images.jamesCompile} --skipTests --url ${repoURL} ${branch}"
+            }
+            node {
+                echo "Deploying ${buildId}"
+                sh "docker cp ${containers.keystore}:${keystorePath} destination/conf"
+                sh "docker cp ${containers.jamesCompile}:${zipPath} destination"
+                
+                sh "docker run --detach=true --name=${containers.cassandra} ${images.cassandra}"
+                sh "docker run --detach=true --name=${containers.elasticSearch} ${images.elasticSearch}"
+                sh "docker build --file=JamesRunDockerfile --tag=${images.james} ./"
+                sh "docker run --detach=true --name=${containers.james} --hostname ${hostname} --expose=143 --publish-all=true ${jamesLinks} ${images.james}"
+                
+                echo 'Waiting for James server to be deployed'
+                waitForCommandSuccess("docker exec ${containers.james} ${jamesCliWithOptions} listusers", maxRetries)
+                sh "docker logs ${containers.james}"
+                
+            }
+            node {
+                echo "Configuring James Server"
+                sh "docker exec ${containers.james} ${jamesCliWithOptions} adddomain domain"
+                sh "docker exec ${containers.james} ${jamesCliWithOptions} adduser imapuser@domain password"
+                
+                echo "Running integration tests on ${buildId}"
+                sh "${findImapPort} && docker run --name=${containers.integration} --entrypoint=\"/root/integration_tests.sh\" ${useMavenCache} ${images.jamesCompile} ${integrationArguments}"
+            }
+        } finally {
+            node {
+                echo "Cleaning ${buildId}"
+                deleteContainer(containers.jamesCompile)
+                deleteContainer(containers.cassandra)
+                deleteContainer(containers.elasticSearch)
+                deleteContainer(containers.integration)
+                deleteContainer(containers.james)
+                deleteImage(images.jamesCompile)
+                deleteImage(images.james)
+            }
+        }
+    }
+}
+
+parallel flows
