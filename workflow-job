@@ -48,25 +48,22 @@ def executeCommand (command) {
        sh "${command}"
    } catch (Exception e) {
        echo "Error executing ${command} : ${e.getMessage()}"
+       e.printStackTrace();
    }
 }
 def deleteImage = { name -> executeCommand("docker rmi --force=true ${name}") }
 def deleteContainer = { name -> executeCommand("docker rm --force=true --volumes=true ${name}") }
 def waitForCommandSuccess (command, maxRetries) {
-    def needRetry = true;
     def tries = 0;
-    while (needRetry) {
-        echo "${tries}/${maxRetries}"
+    while (tries++ < maxRetries) {
         try {
             sh command
-            needRetry = false
+            return true
         } catch (Exception e) {
-            tries++;
-            if (tries > maxRetries) {
+            if (tries >= maxRetries) {
                 throw new Exception("${} tries exceeded. ${command} failed.", e)
-            } else {
-                sh "sleep 1"
             }
+            sh "sleep 1"
         }
     }
 }
@@ -94,7 +91,7 @@ branches.each {
                 echo "Building ${buildId}"
                 git url: repoURL, branch: branch
                 sh "docker build --tag=${images.jamesCompile} ."
-                sh "docker run --name=${containers.jamesCompile} ${useMavenCache} --volume=/destination --tty=true ${images.jamesCompile} --skipTests --url ${repoURL} ${branch}"
+                sh "docker run --name=${containers.jamesCompile} ${useMavenCache} --volume=/destination ${images.jamesCompile} --skipTests --url ${repoURL} ${branch}"
             }
             node {
                 echo "Deploying ${buildId}"
@@ -117,7 +114,7 @@ branches.each {
                 sh "docker exec ${containers.james} ${jamesCliWithOptions} adduser imapuser@domain password"
                 
                 echo "Running integration tests on ${buildId}"
-                sh "${findImapPort} && docker run --tty=true --name=${containers.integration} --entrypoint=\"/root/integration_tests.sh\" ${useMavenCache} ${images.jamesCompile} ${integrationArguments}"
+                sh "${findImapPort} && docker run --name=${containers.integration} --entrypoint=\"/root/integration_tests.sh\" ${useMavenCache} ${images.jamesCompile} ${integrationArguments}"
             }
         } finally {
             node {
