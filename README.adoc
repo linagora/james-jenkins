@@ -13,6 +13,8 @@ your jenkins or any future jenkins will make them run.
 
 == How to use it
 
+=== Key container
+
 We want our TLS keys to be in an other container. This allows us to publish our
  Jenkins stateless container, and to be able to easily change the TLS keys. 
 Jenkins container will use the --volumes-from when run to access certificates.
@@ -32,15 +34,10 @@ $docker build -f DockerFileKeyContainer -t keys .
 $docker run -v /keys --name keys keys
 ----
 
-We will then add a container for caching maven repositories ( accelerate builds, 
-avoid errors on maven failing retrieving its dependencies ) :
+=== Launch Jenkins
 
-----
-$docker build -f DockerFileMavenCache -t maven-cache .
-$docker run -v /root/.m2 --name maven-cache -e affinity:container==keys maven-cache
-----
-
-To start a jenkins instance, you now just have to do :
+To start a jenkins instance, you need to have a key container on the node you are 
+launching jenkins. Then :
 
 ----
 $docker build --tag myjenkins .
@@ -53,18 +50,41 @@ Then, you can open it in your browser :
 $firefox http://`docker inspect --format {{.NetworkSettings.IPAddress}} jks`:8080
 ----
 
-Note : If you want to use james deploy script, you need to have a docker container 
-with the James TLS certificates. 
+=== Jobs requirements
 
-First copy James TLS certificate to this directory. Or you can generate them using :
+You need some extra container for the jobs to run well.
+
+==== Cache for maven
+
+We will then add a container for caching maven repositories ( accelerate builds, 
+avoid errors on maven failing retrieving its dependencies). You will need it on 
+nodes running James compilation through docker.
+
+----
+$docker build -f DockerFileMavenCache -t maven-cache .
+$docker run -v /root/.m2 --name maven-cache -e affinity:container==keys maven-cache
+----
+
+==== James Keystore
+
+If you want to use james deploy script, you need to have a docker container 
+with the James TLS certificates. You may not want to publish a container with 
+such sensitive content, or even commit it in a source code management system.
+
+First copy James TLS certificate to the directory containing this README. Or you can generate them using :
 
 ----
 $keytool -genkey -alias james -keyalg RSA -keystore keystore
 ----
 
-Be sure that the password you provide matches with James configuration.
+NOTE: To generate James keystore this way, you need to have keytool installed.
 
-Run these command to set up this container on nodes that will hosts James servers :
+Be sure that the password you provide matches with James configuration. You will 
+find it in james-parent project, in the destination/conf directory. Concerned files are 
+'imapserver.xml', 'pop3server.xml' and 'smtpserver.xml'. Edit them locally before 
+launching james image build. Default value is set to 'james72laBalle').
+
+Then, run these command to set up this container on nodes that will hosts James servers :
 
 ----
 $docker build -f DockerfileJamesTlsKeyContainer -t keystore .
