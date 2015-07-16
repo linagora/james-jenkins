@@ -2,9 +2,9 @@ import java.util.List
 import java.util.ArrayList
 import java.util.UUID
 
-def branches = ['plop-199']
+def branches = ['Issue-195']
 def dockerIp = '62.210.100.33'
-def repoURL = 'https://ci.open-paas.org/stash/scm/jwc/james-parent.git'
+def repoURL = 'https://github.com/chibenwa/james-parent'
 def hostname = 'james.linagora.com'
 def maxRetries = 60
 
@@ -14,10 +14,12 @@ public class Images implements Serializable {
     def buildId;
     def jamesCompile;
     def james;
+    def gitPublish;
     
     public Images(String buildId) {
         jamesCompile = 'james-parent-compile-' + buildId;
         james = 'james-server-' + buildId;
+        gitPublish = 'git/publish-' + buildId;
     }
 }
 
@@ -28,6 +30,7 @@ public class Containers implements Serializable {
     def integration;
     def jamesCompile;
     def james;
+    def gitPublish;
 
     public Containers(String buildId) {
         cassandra = 'cassandra-' + buildId;
@@ -35,6 +38,7 @@ public class Containers implements Serializable {
         integration = 'integration-' + buildId;
         jamesCompile = 'james-parent-compile-' + buildId;
         james = 'james-server-' + buildId;
+        gitPublish = 'git-publish-' + buildId;
     }
 }
 
@@ -74,12 +78,11 @@ env.DOCKER_TLS_VERIFY = 'TRUE'
 
 def flows = [:]
 
-echo "Check 1"
-
 branches.each {
     flows["${it}"] = {
         def branch = it
         def buildId = "${branch.toLowerCase()}-${UUID.randomUUID()}"
+        def mergeBranch = "MERGE-${buildId}"
         def images = new Images(buildId);
         def containers = new Containers(buildId);
         def jamesLinks = "--link ${containers.cassandra}:cassandra --link ${containers.elasticSearch}:elasticsearch"
@@ -88,10 +91,15 @@ branches.each {
         
         try {
             node {
-                echo "Building ${buildId}"
+                echo "Perform Merge"
                 git url: repoURL, branch: branch
+                sh "docker build -f DockerfileGitPublish --tag ${images.gitPublish} ."
+                sh "docker run -t --name ${containers.gitPublish} -v /origin ${images.gitPublish} ${branch} ${mergeBranch}"
+            }
+            node {
+                echo "Building ${buildId}"
                 sh "docker build --tag=${images.jamesCompile} ."
-                sh "docker run --name=${containers.jamesCompile} ${useMavenCache} --volume=/destination ${images.jamesCompile} --skipTests --url ${repoURL} ${branch}"
+                sh "docker run --name=${containers.jamesCompile} ${useMavenCache} --volumes-from=${containers.gitPublish} --volume=/destination ${images.jamesCompile} -s ${mergeBranch}"
             }
             node {
                 echo "Deploying ${buildId}"
@@ -124,8 +132,10 @@ branches.each {
                 deleteContainer(containers.elasticSearch)
                 deleteContainer(containers.integration)
                 deleteContainer(containers.james)
+                deleteContainer(containers.gitPublish)
                 deleteImage(images.jamesCompile)
                 deleteImage(images.james)
+                deleteImage(images.gitPublish)
             }
         }
     }
