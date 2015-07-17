@@ -77,10 +77,10 @@ First copy James TLS certificate to the directory containing this README. Or you
 $keytool -genkey -alias james -keyalg RSA -keystore keystore
 ----
 
-NOTE: To generate James keystore this way, you need to have keytool installed.
+NOTE: To generate James keystore this way, you need to have keytool installed. This tools comes from the JDK.
 
 Be sure that the password you provide matches with James configuration. You will 
-find it in james-parent project, in the destination/conf directory. Concerned files are 
+find it in james-parent project, in the destination/conf directory. These files are 
 'imapserver.xml', 'pop3server.xml' and 'smtpserver.xml'. Edit them locally before 
 launching james image build. Default value is set to 'james72laBalle').
 
