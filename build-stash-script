@@ -25,7 +25,7 @@ REPOSITORIES.each {
                     [buildStepFailure: 'FAILURE',
                      failure         : 'FAILURE',
                      unstable        : 'UNSTABLE']) {
-                    predefinedProps([projectCode: '${projectCode}', branches: ['${sourceBranch}']])
+                    predefinedProps([projectCode: '${projectCode}', branch: '${sourceBranch}'])
                 }
             }
         }

@@ -2,7 +2,7 @@ import java.util.List
 import java.util.ArrayList
 import java.util.UUID
 
-// This script must be called with a $branches parameter : branches to build specified as a String Array
+// This script must be called with a $branch parameter : branch to build specified
 // This script must be called with a $projectCode parameter : specifies the path to the code to use
 
 def dockerIp = '62.210.100.33'
@@ -80,65 +80,62 @@ env.DOCKER_TLS_VERIFY = 'TRUE'
 
 def flows = [:]
 
-branches.each {
-    flows["${it}"] = {
-        def branch = it
-        def buildId = "${branch.toLowerCase()}-${UUID.randomUUID()}"
-        def mergeBranch = "MERGE-${buildId}"
-        def images = new Images(buildId);
-        def containers = new Containers(buildId);
-        def jamesLinks = "--link ${containers.cassandra}:cassandra --link ${containers.elasticSearch}:elasticsearch"
-        def findImapPort = "export JAMES_PORT=`docker inspect -f '{{(index (index .NetworkSettings.Ports \"143/tcp\") 0).HostPort}}' ${containers.james}`"
-        def integrationArguments = "${repoURL} ${branch} ${dockerIp} \$JAMES_PORT"
+flows["${branch}"] = {
+    def buildId = "${branch.toLowerCase()}-${UUID.randomUUID()}"
+    def mergeBranch = "MERGE-${buildId}"
+    def images = new Images(buildId);
+    def containers = new Containers(buildId);
+    def jamesLinks = "--link ${containers.cassandra}:cassandra --link ${containers.elasticSearch}:elasticsearch"
+    def findImapPort = "export JAMES_PORT=`docker inspect -f '{{(index (index .NetworkSettings.Ports \"143/tcp\") 0).HostPort}}' ${containers.james}`"
+    def integrationArguments = "${repoURL} ${branch} ${dockerIp} \$JAMES_PORT"
         
-        try {
-            node {
-                echo "Perform Merge"
-                git url: repoURL, branch: branch
-                sh "docker build -f DockerfileGitPublish --tag ${images.gitPublish} ."
-                sh "docker run -t --name ${containers.gitPublish} -v /origin ${images.gitPublish} ${branch} ${mergeBranch}"
-            }
-            node {
-                echo "Building ${buildId}"
-                sh "docker build --tag=${images.jamesCompile} ."
-                sh "docker run --name=${containers.jamesCompile} ${useMavenCache} --volumes-from=${containers.gitPublish} --volume=/destination ${images.jamesCompile} -s ${mergeBranch}"
-            }
-            node {
-                echo "Deploying ${buildId}"
-                sh "docker cp ${containers.keystore}:${keystorePath} destination/conf"
-                sh "docker cp ${containers.jamesCompile}:${zipPath} destination"
-                
-                sh "docker run --detach=true --name=${containers.cassandra} ${images.cassandra}"
-                sh "docker run --detach=true --name=${containers.elasticSearch} ${images.elasticSearch}"
-                sh "docker build --file=JamesRunDockerfile --tag=${images.james} ./"
-                sh "docker run --detach=true --name=${containers.james} --hostname ${hostname} --expose=143 --publish-all=true ${jamesLinks} ${images.james}"
-                
-                echo 'Waiting for James server to be deployed'
-                waitForCommandSuccess("docker exec ${containers.james} ${jamesCliWithOptions} listusers", maxRetries)
-                sh "docker logs ${containers.james}"
-                
-            }
-            node {
-                echo "Configuring James Server"
-                sh "docker exec ${containers.james} ${jamesCliWithOptions} adddomain domain"
-                sh "docker exec ${containers.james} ${jamesCliWithOptions} adduser imapuser@domain password"
-                
-                echo "Running integration tests on ${buildId}"
-                sh "${findImapPort} && docker run --name=${containers.integration} --entrypoint=\"/root/integration_tests.sh\" ${useMavenCache} ${images.jamesCompile} ${integrationArguments}"
-            }
-        } finally {
-            node {
-                echo "Cleaning ${buildId}"
-                deleteContainer(containers.jamesCompile)
-                deleteContainer(containers.cassandra)
-                deleteContainer(containers.elasticSearch)
-                deleteContainer(containers.integration)
-                deleteContainer(containers.james)
-                deleteContainer(containers.gitPublish)
-                deleteImage(images.jamesCompile)
-                deleteImage(images.james)
-                deleteImage(images.gitPublish)
-            }
+    try {
+        node {
+            echo "Perform Merge"
+            git url: repoURL, branch: branch
+            sh "docker build -f DockerfileGitPublish --tag ${images.gitPublish} ."
+            sh "docker run -t --name ${containers.gitPublish} -v /origin ${images.gitPublish} ${branch} ${mergeBranch}"
+        }
+        node {
+            echo "Building ${buildId}"
+            sh "docker build --tag=${images.jamesCompile} ."
+            sh "docker run --name=${containers.jamesCompile} ${useMavenCache} --volumes-from=${containers.gitPublish} --volume=/destination ${images.jamesCompile} -s ${mergeBranch}"
+        }
+        node {
+            echo "Deploying ${buildId}"
+            sh "docker cp ${containers.keystore}:${keystorePath} destination/conf"
+            sh "docker cp ${containers.jamesCompile}:${zipPath} destination"
+            
+            sh "docker run --detach=true --name=${containers.cassandra} ${images.cassandra}"
+            sh "docker run --detach=true --name=${containers.elasticSearch} ${images.elasticSearch}"
+            sh "docker build --file=JamesRunDockerfile --tag=${images.james} ./"
+            sh "docker run --detach=true --name=${containers.james} --hostname ${hostname} --expose=143 --publish-all=true ${jamesLinks} ${images.james}"
+            
+            echo 'Waiting for James server to be deployed'
+            waitForCommandSuccess("docker exec ${containers.james} ${jamesCliWithOptions} listusers", maxRetries)
+            sh "docker logs ${containers.james}"
+              
+        }
+        node {
+            echo "Configuring James Server"
+            sh "docker exec ${containers.james} ${jamesCliWithOptions} adddomain domain"
+            sh "docker exec ${containers.james} ${jamesCliWithOptions} adduser imapuser@domain password"
+             
+            echo "Running integration tests on ${buildId}"
+            sh "${findImapPort} && docker run --name=${containers.integration} --entrypoint=\"/root/integration_tests.sh\" ${useMavenCache} ${images.jamesCompile} ${integrationArguments}"
+        }
+    } finally {
+        node {
+            echo "Cleaning ${buildId}"
+            deleteContainer(containers.jamesCompile)
+            deleteContainer(containers.cassandra)
+            deleteContainer(containers.elasticSearch)
+            deleteContainer(containers.integration)
+            deleteContainer(containers.james)
+            deleteContainer(containers.gitPublish)
+            deleteImage(images.jamesCompile)
+            deleteImage(images.james)
+            deleteImage(images.gitPublish)
         }
     }
 }
