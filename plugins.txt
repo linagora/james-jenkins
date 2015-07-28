@@ -1,12 +1,17 @@
+credentials:1.22
 durable-task:1.5
 envinject:1.91.3
+ghprb:1.26.2
 git:2.3.5
 git-client:1.16.1
 git-server:1.6
+github:1.12.0
+github-api:1.69
 job-dsl:1.34
 mapdb-api:1.0.6.0
 maven-plugin:2.7.1
 parameterized-trigger:2.27
+plain-credentials:1.1
 scm-api:0.2
 ssh-agent:1.7
 stashNotifier:1.8
