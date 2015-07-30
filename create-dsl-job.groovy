@@ -4,6 +4,7 @@ import hudson.plugins.git.BranchSpec;
 import hudson.triggers.SCMTrigger;
 import javaposse.jobdsl.plugin.*;
 import jenkins.model.Jenkins;
+import jenkins.model.JenkinsLocationConfiguration;
 import org.jenkinsci.plugins.scriptsecurity.sandbox.Whitelist;
 import org.jenkinsci.plugins.scriptsecurity.sandbox.whitelists.BlanketWhitelist;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
@@ -11,6 +12,10 @@ import org.jenkinsci.plugins.workflow.cps.CpsScmFlowDefinition;
 
 jenkins = Jenkins.instance;
 jenkins.getExtensionList(Whitelist.class).push(new BlanketWhitelist());
+
+configuration = JenkinsLocationConfiguration.get();
+configuration.setUrl(System.getenv("JENKINS_URL"));
+configuration.save();
 
 scm = new GitSCM("https://github.com/linagora/james-jenkins");
 scm.branches = [new BranchSpec("*/master")];
