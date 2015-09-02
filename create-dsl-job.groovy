@@ -61,3 +61,15 @@ ghprbDescriptor.save();
 ghprbPushDescriptor = Jenkins.instance.getExtensionList(com.cloudbees.jenkins.GitHubPushTrigger.DescriptorImpl.class)[0];
 ghprbPushDescriptor.manageHook = true;
 ghprbPushDescriptor.save();
+
+slackToken = System.getenv("SLACK_TOKEN");
+if (slackToken != null) {
+    slackDescriptor = Jenkins.instance.getExtensionList(jenkins.plugins.slack.SlackNotifier.DescriptorImpl.class)[0];
+    slackDescriptor.teamDomain = "linagora";
+    slackDescriptor.token = slackToken;
+    slackDescriptor.room = "#james";
+} else {
+    slackPluginWrapper = Jenkins.instance.getPlugin("slack").getWrapper();
+    slackPluginWrapper.doMakeDisabled();
+    Jenkins.instance.restart();
+}
