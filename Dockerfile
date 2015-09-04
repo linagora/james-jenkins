@@ -15,6 +15,7 @@ RUN git config --global user.name "Jenkins James" \
 COPY plugins.txt /plugins.txt
 
 RUN /usr/local/bin/plugins.sh /plugins.txt
+COPY ghprb.hpi /usr/share/jenkins/ref/plugins/ghprb.jpi
 COPY job-dsl.hpi /usr/share/jenkins/ref/plugins/job-dsl.jpi
 COPY workflow-aggregator.hpi /usr/share/jenkins/ref/plugins/workflow-aggregator.jpi
 COPY workflow-api.hpi /usr/share/jenkins/ref/plugins/workflow-api.jpi

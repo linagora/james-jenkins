@@ -3,12 +3,17 @@ import java.util.ArrayList
 import java.util.UUID
 
 // This script must be called with a $branch parameter : branch to build specified
-// This script must be called with a $projectCode parameter : specifies the path to the code to use
+// This script must be called with a $repoURL parameter : specifies the commiter GitHub repo URL
 
 def dockerIp = '62.210.100.33'
 def hostname = 'james.linagora.com'
 def maxRetries = 60
-def repoURL = "https://ci.open-paas.org/stash/scm/${projectCode}/james-parent.git"
+def author = extractUsername()
+def authorParentURL = "https://github.com/${author}/james-parent.git"
+
+public String extractUsername() {
+    return "${repoURL}".split('/')[3];
+}
 
 public class Images implements Serializable {
     def cassandra = 'cassandra'
@@ -87,12 +92,12 @@ flows["${branch}"] = {
     def containers = new Containers(buildId);
     def jamesLinks = "--link ${containers.cassandra}:cassandra --link ${containers.elasticSearch}:elasticsearch"
     def findImapPort = "export JAMES_PORT=`docker inspect -f '{{(index (index .NetworkSettings.Ports \"143/tcp\") 0).HostPort}}' ${containers.james}`"
-    def integrationArguments = "${repoURL} ${branch} ${dockerIp} \$JAMES_PORT"
+    def integrationArguments = "${authorParentURL} ${branch} ${dockerIp} \$JAMES_PORT"
         
     try {
         node {
             echo "Perform Merge"
-            git url: repoURL, branch: branch
+            git url: authorParentURL, branch: branch
             sh "docker build -f DockerfileGitPublish --tag ${images.gitPublish} ."
             sh "docker run -t --name ${containers.gitPublish} -v /origin ${images.gitPublish} ${branch} ${mergeBranch}"
         }
