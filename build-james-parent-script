@@ -1,0 +1,33 @@
+def repository = 'https://github.com/linagora/james-parent'
+job('Trunk on james-parent') {
+    githubProjectUrl(repository)
+    scm {
+        git {
+            remote {
+                url(repository + '.git')
+            }
+            branch('trunk')
+        }
+    }
+    triggers {
+        scm('* * * * *') {
+            ignorePostCommitHooks(false)
+        }
+    }
+    steps {
+        downstreamParameterized {
+            trigger('workflow', 'ALWAYS', false,
+                [buildStepFailure: 'FAILURE',
+                 failure         : 'FAILURE',
+                 unstable        : 'UNSTABLE']) {
+                predefinedProps([repoURL: repository, branch: 'trunk'])
+            }
+        }
+    }
+    publishers {
+        slackNotifications {
+            notifyFailure()
+            notifyBackToNormal()
+        }
+    }
+}
