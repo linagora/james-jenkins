@@ -21,6 +21,7 @@ import org.jenkinsci.plugins.workflow.cps.CpsScmFlowDefinition;
 
 jenkins = Jenkins.instance;
 jenkins.getExtensionList(Whitelist.class).push(new BlanketWhitelist());
+jenkins.setNumExecutors(16);
 
 configuration = JenkinsLocationConfiguration.get();
 configuration.setUrl(System.getenv("JENKINS_URL"));
