@@ -21,7 +21,7 @@ REPOSITORIES.each {
                     [buildStepFailure: 'FAILURE',
                      failure         : 'FAILURE',
                      unstable        : 'UNSTABLE']) {
-                    predefinedProps([repoURL: '${ghprbAuthorRepoGitUrl}', branch: '${ghprbSourceBranch}'])
+                    predefinedProps([repoURL: '${ghprbAuthorRepoGitUrl}', branch: '${ghprbSourceBranch}', sha1: '${ghprbActualCommit}'])
                 }
             }
         }
