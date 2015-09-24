@@ -1,18 +1,95 @@
 import java.util.List
 import java.util.ArrayList
 import java.util.UUID
+import org.kohsuke.github.GitHub
+import org.kohsuke.github.GHCommitState
+import org.kohsuke.github.GHRepository
 
 // This script must be called with a $branch parameter : branch to build specified
 // This script must be called with a $repoURL parameter : specifies the commiter GitHub repo URL
+// Optional $sha1 parameter : specifies the actual commit
 
 def dockerIp = '62.210.100.33'
 def hostname = 'james.linagora.com'
 def maxRetries = 60
 def author = extractUsername()
 def authorParentURL = "https://github.com/${author}/james-parent.git"
+def repoName = extractRepoName()
+
+// Not given optional parameters are set to null
+def propertyMissing(String name) { null }
 
 public String extractUsername() {
     return "${repoURL}".split('/')[3];
+}
+
+public String extractRepoName() {
+    return "${repoURL}".split('/')[4].split('\\.')[0];
+}
+
+public class CommitStatuses implements Serializable {
+    def commitStatuses;
+
+    public CommitStatuses() {
+        commitStatuses = new ArrayList<CommitStatus>();
+    }
+
+    public void addPendingStatus(CommitStatus status) {
+        commitStatuses.add(status);
+        status.pending();
+    }
+
+    public void failPendingStatuses() {
+        for (CommitStatus status : commitStatuses) {
+            if (status.state.equals("PENDING")) {
+                status.failure();
+            }
+        }
+    }
+}
+
+public class CommitStatus implements Serializable {
+    def repoName;
+    def sha1;
+    def description;
+    def context;
+    def state;
+
+    public CommitStatus(String repoName, String sha1, String description, String step) {
+        this.repoName = repoName;
+        this.sha1 = sha1;
+        this.description = description;
+        this.context = "workflow-job step " + step;
+    }
+
+    def pending() { createPendingCommitStatus(); }
+    def success() { createSuccessCommitStatus(); }
+    def failure() { createFailureCommitStatus(); }
+
+    private void createPendingCommitStatus() {
+        createCommitStatus("PENDING");
+    }
+
+    private void createSuccessCommitStatus() {
+        createCommitStatus("SUCCESS");
+    }
+
+    private void createFailureCommitStatus() {
+        createCommitStatus("FAILURE");
+    }
+
+    @NonCPS
+    private GHRepository getRepository(String repoName) {
+        return GitHub.connectUsingOAuth(System.getenv("GITHUB_TOKEN")).getRepository("linagora/" + repoName);
+    }
+
+    @NonCPS
+    private void createCommitStatus(String state) {
+        this.state = state;
+        if (sha1 != null) {
+                getRepository(repoName).createCommitStatus(sha1, GHCommitState.valueOf(state), null, description, context);
+        }
+    }
 }
 
 public class Images implements Serializable {
@@ -94,17 +171,31 @@ flows["${branch}"] = {
     def findImapPort = "export JAMES_PORT=`docker inspect -f '{{(index (index .NetworkSettings.Ports \"143/tcp\") 0).HostPort}}' ${containers.james}`"
     def integrationArguments = "${authorParentURL} ${branch} ${dockerIp} \$JAMES_PORT"
         
+    def statuses = new CommitStatuses();
+    def merging = new CommitStatus(repoName, sha1, "Merging", "1");
+    statuses.addPendingStatus(merging);
+    def building = new CommitStatus(repoName, sha1, "Building", "2");
+    statuses.addPendingStatus(building);
+    def dockering = new CommitStatus(repoName, sha1, "Dockering", "3");
+    statuses.addPendingStatus(dockering);
+    def deploying = new CommitStatus(repoName, sha1, "Deploying", "4");
+    statuses.addPendingStatus(deploying);
+    def testing = new CommitStatus(repoName, sha1, "Running integration tests", "5");
+    statuses.addPendingStatus(testing);
+
     try {
         node {
             echo "Perform Merge"
             git url: authorParentURL, branch: branch
             sh "docker build -f DockerfileGitPublish --tag ${images.gitPublish} ."
             sh "docker run -t --name ${containers.gitPublish} -v /origin ${images.gitPublish} ${branch} ${mergeBranch}"
+            merging.success();
         }
         node {
             echo "Building ${buildId}"
             sh "docker build --tag=${images.jamesCompile} ."
             sh "docker run --name=${containers.jamesCompile} ${useMavenCache} --volumes-from=${containers.gitPublish} --volume=/destination ${images.jamesCompile} -s ${mergeBranch}"
+            building.success();
         }
         node {
             echo "Deploying ${buildId}"
@@ -114,12 +205,13 @@ flows["${branch}"] = {
             sh "docker run --detach=true --name=${containers.cassandra} ${images.cassandra}"
             sh "docker run --detach=true --name=${containers.elasticSearch} ${images.elasticSearch}"
             sh "docker build --file=JamesRunDockerfile --tag=${images.james} ./"
+            dockering.success()
             sh "docker run --detach=true --name=${containers.james} --hostname ${hostname} --expose=143 --publish-all=true ${jamesLinks} ${images.james}"
             
             echo 'Waiting for James server to be deployed'
             waitForCommandSuccess("docker exec ${containers.james} ${jamesCliWithOptions} listusers", maxRetries)
             sh "docker logs ${containers.james}"
-              
+            deploying.success();
         }
         node {
             echo "Configuring James Server"
@@ -128,19 +220,24 @@ flows["${branch}"] = {
              
             echo "Running integration tests on ${buildId}"
             sh "${findImapPort} && docker run --name=${containers.integration} --entrypoint=\"/root/integration_tests.sh\" ${useMavenCache} ${images.jamesCompile} ${integrationArguments}"
+            testing.success();
         }
     } finally {
         node {
             echo "Cleaning ${buildId}"
+            deleteContainer(containers.gitPublish)
+            deleteImage(images.gitPublish)
+
             deleteContainer(containers.jamesCompile)
+            deleteImage(images.jamesCompile)
+
             deleteContainer(containers.cassandra)
             deleteContainer(containers.elasticSearch)
-            deleteContainer(containers.integration)
             deleteContainer(containers.james)
-            deleteContainer(containers.gitPublish)
-            deleteImage(images.jamesCompile)
             deleteImage(images.james)
-            deleteImage(images.gitPublish)
+
+            deleteContainer(containers.integration)
+            statuses.failPendingStatuses();
         }
     }
 }
