@@ -1,5 +1,5 @@
-def repository = 'https://github.com/linagora/james-parent'
-job('Trunk on james-parent') {
+def repository = 'https://github.com/linagora/james-project'
+job('Trunk on james-project') {
     githubProjectUrl(repository)
     scm {
         git {

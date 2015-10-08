@@ -5,15 +5,16 @@ import org.kohsuke.github.GitHub
 import org.kohsuke.github.GHCommitState
 import org.kohsuke.github.GHRepository
 
-// This script must be called with a $branch parameter : branch to build specified
-// This script must be called with a $repoURL parameter : specifies the commiter GitHub repo URL
-// Optional $sha1 parameter : specifies the actual commit
+// This script must be called with 
+// $branch parameter : branch to build specified (used by git workflow-plugin command)
+// $repoURL parameter : specifies the commiter GitHub repo URL
+// $sha1 parameter : specifies the actual commit
 
 def dockerIp = '62.210.100.33'
 def hostname = 'james.linagora.com'
 def maxRetries = 60
 def author = extractUsername()
-def authorParentURL = "https://github.com/${author}/james-parent.git"
+def authorParentURL = "https://github.com/${author}/james-project.git"
 def repoName = extractRepoName()
 
 // Not given optional parameters are set to null
@@ -162,14 +163,23 @@ env.DOCKER_TLS_VERIFY = 'TRUE'
 
 def flows = [:]
 
-flows["${branch}"] = {
+def sha1OrTrunk = {
+    if (sha1 == null) {
+        return 'trunk';
+    }
+    return sha1;
+}
+
+flows["${sha1}"] = {
     def buildId = "${branch.toLowerCase()}-${UUID.randomUUID()}"
     def mergeBranch = "MERGE-${buildId}"
     def images = new Images(buildId);
     def containers = new Containers(buildId);
     def jamesLinks = "--link ${containers.cassandra}:cassandra --link ${containers.elasticSearch}:elasticsearch"
     def findImapPort = "export JAMES_PORT=`docker inspect -f '{{(index (index .NetworkSettings.Ports \"143/tcp\") 0).HostPort}}' ${containers.james}`"
-    def integrationArguments = "${authorParentURL} ${branch} ${dockerIp} \$JAMES_PORT"
+    def sha1ToBuild = sha1OrTrunk()
+    def integrationArguments = "${dockerIp} \$JAMES_PORT ${authorParentURL} ${sha1ToBuild}"
+    def verbose = "-a stdout -a stderr"
         
     def statuses = new CommitStatuses();
     def merging = new CommitStatus(repoName, sha1, "Merging", "1");
@@ -187,26 +197,26 @@ flows["${branch}"] = {
         node {
             echo "Perform Merge"
             git url: authorParentURL, branch: branch
-            sh "docker build -f DockerfileGitPublish --tag ${images.gitPublish} ."
-            sh "docker run -t --name ${containers.gitPublish} -v /origin ${images.gitPublish} ${branch} ${mergeBranch}"
+            sh "docker build --tag ${images.gitPublish} ."
+            sh "docker run ${verbose} -t --name ${containers.gitPublish} -v /origin ${images.gitPublish} ${sha1ToBuild} ${mergeBranch}"
             merging.success();
         }
         node {
             echo "Building ${buildId}"
-            sh "docker build --tag=${images.jamesCompile} ."
-            sh "docker run --name=${containers.jamesCompile} ${useMavenCache} --volumes-from=${containers.gitPublish} --volume=/destination ${images.jamesCompile} -s ${mergeBranch}"
+            sh "cd dockerfiles/compilation/java-8/; docker build --tag=${images.jamesCompile} ."
+            sh "cd dockerfiles/; docker run ${verbose} --name=${containers.jamesCompile} ${useMavenCache} --volumes-from=${containers.gitPublish} --volume=/destination ${images.jamesCompile} ${mergeBranch}"
             building.success();
         }
         node {
             echo "Deploying ${buildId}"
-            sh "docker cp ${containers.keystore}:${keystorePath} destination/conf"
-            sh "docker cp ${containers.jamesCompile}:${zipPath} destination"
+            sh "cd dockerfiles/; docker cp ${containers.keystore}:${keystorePath} destination/conf"
+            sh "cd dockerfiles/; docker cp ${containers.jamesCompile}:${zipPath} destination"
             
             sh "docker run --detach=true --name=${containers.cassandra} ${images.cassandra}"
             sh "docker run --detach=true --name=${containers.elasticSearch} ${images.elasticSearch}"
-            sh "docker build --file=JamesRunDockerfile --tag=${images.james} ./"
+            sh "cd dockerfiles/; docker build --tag=${images.james} ."
             dockering.success()
-            sh "docker run --detach=true --name=${containers.james} --hostname ${hostname} --expose=143 --publish-all=true ${jamesLinks} ${images.james}"
+            sh "cd dockerfiles/; docker run --detach=true --name=${containers.james} --hostname ${hostname} --expose=143 --publish-all=true ${jamesLinks} ${images.james}"
             
             echo 'Waiting for James server to be deployed'
             waitForCommandSuccess("docker exec ${containers.james} ${jamesCliWithOptions} listusers", maxRetries)
@@ -219,7 +229,7 @@ flows["${branch}"] = {
             sh "docker exec ${containers.james} ${jamesCliWithOptions} adduser imapuser@domain password"
              
             echo "Running integration tests on ${buildId}"
-            sh "${findImapPort} && docker run --name=${containers.integration} --entrypoint=\"/root/integration_tests.sh\" ${useMavenCache} ${images.jamesCompile} ${integrationArguments}"
+            sh "${findImapPort} && docker run ${verbose} --name=${containers.integration} --entrypoint=\"/root/integration_tests.sh\" ${useMavenCache} ${images.jamesCompile} ${integrationArguments}"
             testing.success();
         }
     } finally {
