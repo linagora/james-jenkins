@@ -1,6 +1,5 @@
 def GITHUB_BASE_URL= 'https://github.com/linagora/'
-def REPOSITORIES = ['james', 'james-jdkim', 'james-jsieve', 'james-jspf', 'james-mailbox', 'james-mailet', 'james-mime4j', 
-    'james-mpt', 'james-parent', 'james-project', 'james-protocols'] 
+def REPOSITORIES = ['james-project'] 
 
 REPOSITORIES.each {
     def repository = it
