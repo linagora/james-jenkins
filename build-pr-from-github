@@ -3,8 +3,9 @@ def REPOSITORIES = ['james-project']
 
 REPOSITORIES.each {
     def repository = it
-    job(repository) {
-        githubProjectUrl(GITHUB_BASE_URL + repository)
+    def url = GITHUB_BASE_URL + repository
+    job('build pull-requests') {
+        githubProjectUrl(url)
         triggers {
             pullRequest {
                 cron('* * * * *')
