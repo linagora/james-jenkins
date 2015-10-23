@@ -1,5 +1,5 @@
 def repository = 'https://github.com/linagora/james-project'
-job('Trunk on james-project') {
+job('build linagora james-project trunk') {
     githubProjectUrl(repository)
     scm {
         git {
