@@ -35,7 +35,7 @@ jenkins.add(workflowJob, workflowJob.name);
 
 jobName = "create-dsl-job";
 gitTrigger = new SCMTrigger("* * * * *");
-dslBuilder = new ExecuteDslScripts(scriptLocation=new ExecuteDslScripts.ScriptLocation(value = "false", targets="build-github-script,build-james-project-script", scriptText=""), ignoreExisting=false, removedJobAction=RemovedJobAction.DISABLE);
+dslBuilder = new ExecuteDslScripts(scriptLocation=new ExecuteDslScripts.ScriptLocation(value = "false", targets="build-pr-from-github,build-apache-james-project-trunk", scriptText=""), ignoreExisting=false, removedJobAction=RemovedJobAction.DISABLE);
 dslProject = new hudson.model.FreeStyleProject(jenkins, jobName);
 dslProject.scm = new GitSCM("https://github.com/linagora/james-jenkins.git");
 dslProject.scm.branches = [new BranchSpec("*/master")];
