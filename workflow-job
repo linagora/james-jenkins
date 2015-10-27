@@ -178,7 +178,7 @@ flows["${sha1}"] = {
     def jamesLinks = "--link ${containers.cassandra}:cassandra --link ${containers.elasticSearch}:elasticsearch"
     def findImapPort = "export JAMES_PORT=`docker inspect -f '{{(index (index .NetworkSettings.Ports \"143/tcp\") 0).HostPort}}' ${containers.james}`"
     def sha1ToBuild = sha1OrTrunk()
-    def integrationArguments = "${dockerIp} \$JAMES_PORT ${authorParentURL} ${sha1ToBuild}"
+    def integrationArguments = "${dockerIp} \$JAMES_PORT ${sha1ToBuild}"
     def verbose = "-a stdout -a stderr"
         
     def statuses = new CommitStatuses();
@@ -197,13 +197,13 @@ flows["${sha1}"] = {
         node {
             echo "Perform Merge"
             git url: authorParentURL, branch: branch
-            sh "docker build --tag ${images.gitPublish} ."
+            sh "docker build --tag ${images.gitPublish} -f dockerfiles/merge/Dockerfile ."
             sh "docker run ${verbose} -t --name ${containers.gitPublish} -v /origin ${images.gitPublish} ${sha1ToBuild} ${mergeBranch}"
             merging.success();
         }
         node {
             echo "Building ${buildId}"
-            sh "cd dockerfiles/compilation/java-8/; docker build --tag=${images.jamesCompile} ."
+            sh "docker build --tag=${images.jamesCompile} dockerfiles/compilation/java-8"
             sh "cd dockerfiles/; docker run ${verbose} --name=${containers.jamesCompile} ${useMavenCache} --volumes-from=${containers.gitPublish} --volume=/destination ${images.jamesCompile} ${mergeBranch}"
             building.success();
         }
@@ -214,9 +214,9 @@ flows["${sha1}"] = {
             
             sh "docker run --detach=true --name=${containers.cassandra} ${images.cassandra}"
             sh "docker run --detach=true --name=${containers.elasticSearch} ${images.elasticSearch}"
-            sh "cd dockerfiles/; docker build --tag=${images.james} ."
+            sh "docker build --tag=${images.james} dockerfiles"
             dockering.success()
-            sh "cd dockerfiles/; docker run --detach=true --name=${containers.james} --hostname ${hostname} --expose=143 --publish-all=true ${jamesLinks} ${images.james}"
+            sh "docker run --detach=true --name=${containers.james} --hostname ${hostname} --expose=143 --publish-all=true ${jamesLinks} ${images.james}"
             
             echo 'Waiting for James server to be deployed'
             waitForCommandSuccess("docker exec ${containers.james} ${jamesCliWithOptions} listusers", maxRetries)
@@ -229,7 +229,7 @@ flows["${sha1}"] = {
             sh "docker exec ${containers.james} ${jamesCliWithOptions} adduser imapuser@domain password"
              
             echo "Running integration tests on ${buildId}"
-            sh "${findImapPort} && docker run ${verbose} --name=${containers.integration} --entrypoint=\"/root/integration_tests.sh\" ${useMavenCache} ${images.jamesCompile} ${integrationArguments}"
+            sh "${findImapPort} && docker run ${verbose} --name=${containers.integration} --entrypoint=\"/root/integration_tests.sh\" ${useMavenCache} --volumes-from=${containers.gitPublish} ${images.jamesCompile} ${integrationArguments}"
             testing.success();
         }
     } finally {
