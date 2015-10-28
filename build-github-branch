@@ -1,0 +1,47 @@
+import groovy.transform.TupleConstructor
+
+@TupleConstructor()
+class BranchOnRepo {
+    String repo
+    String branch
+}
+
+def branchesToBuild = [new BranchOnRepo('apache/james-project', 'trunk')]
+
+branchesToBuild.each {
+    def branchOnRepo = it
+    def repository = 'https://github.com/' + branchOnRepo.repo
+   
+    job("build ${branchOnRepo.repo} ${branchOnRepo.branch}".replaceAll(/\//, '.')) {
+        githubProjectUrl(repository)
+        scm {
+            git {
+                remote {
+                    url(repository + '.git')
+                }
+                branch(branchOnRepo.branch)
+            }
+        }
+        triggers {
+            scm('* * * * *') {
+                ignorePostCommitHooks(false)
+            }
+        }
+        steps {
+            downstreamParameterized {
+                trigger('workflow', 'ALWAYS', false,
+                    [buildStepFailure: 'FAILURE',
+                     failure         : 'FAILURE',
+                     unstable        : 'UNSTABLE']) {
+                    predefinedProps([repoURL: repository, branch: branchOnRepo.branch])
+                }
+            }
+        }
+        publishers {
+            slackNotifications {
+                notifyFailure()
+                notifyBackToNormal()
+            }
+        }
+    }
+}
