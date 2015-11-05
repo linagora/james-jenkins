@@ -127,9 +127,12 @@ public class Containers implements Serializable {
     }
 }
 
-def zipPath = '/destination/james-server-app-3.0.0-beta5-SNAPSHOT-app.zip' 
+def jarPath = '/destination/james-server-cassandra-guice-3.0.0-beta5-SNAPSHOT.jar' 
+def libPath = '/destination/james-server-cassandra-guice-3.0.0-beta5-SNAPSHOT.lib' 
+def cliJarPath = '/destination/james-server-cli-3.0.0-beta5-SNAPSHOT.jar'
+def cliLibPath = '/destination/james-server-cli-3.0.0-beta5-SNAPSHOT.lib'
 def keystorePath = '/keys/keystore'
-def jamesCliWithOptions = '/root/james-server-app-3.0.0-beta5-SNAPSHOT/bin/james-cli.sh -h 127.0.0.1 -p 9999'
+def jamesCliWithOptions = 'java -jar /root/james-cli.jar -h 127.0.0.1'
 def useMavenCache = '--volumes-from maven-cache-deploy'
 
 def executeCommand (command) {
@@ -209,12 +212,15 @@ flows["${sha1}"] = {
         }
         node {
             echo "Deploying ${buildId}"
-            sh "cd dockerfiles/; docker cp ${containers.keystore}:${keystorePath} destination/conf"
-            sh "cd dockerfiles/; docker cp ${containers.jamesCompile}:${zipPath} destination"
+            sh "cd dockerfiles/run/guice; docker cp ${containers.keystore}:${keystorePath} destination/conf"
+            sh "cd dockerfiles/run/guice; docker cp ${containers.jamesCompile}:${jarPath} destination"
+            sh "cd dockerfiles/run/guice; docker cp ${containers.jamesCompile}:${libPath} destination"
+            sh "cd dockerfiles/run/guice; docker cp ${containers.jamesCompile}:${cliJarPath} destination"
+            sh "cd dockerfiles/run/guice; docker cp ${containers.jamesCompile}:${cliLibPath} destination"
             
             sh "docker run --detach=true --name=${containers.cassandra} ${images.cassandra}"
             sh "docker run --detach=true --name=${containers.elasticSearch} ${images.elasticSearch}"
-            sh "docker build --tag=${images.james} dockerfiles"
+            sh "cd dockerfiles/run/guice; docker build --tag=${images.james} ."
             dockering.success()
             sh "docker run --detach=true --name=${containers.james} --hostname ${hostname} --expose=143 --publish-all=true ${jamesLinks} ${images.james}"
             
