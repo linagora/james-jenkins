@@ -6,7 +6,10 @@ class BranchOnRepo {
     String branch
 }
 
-def branchesToBuild = [new BranchOnRepo('apache/james-project', 'trunk')]
+def branchesToBuild = [
+    new BranchOnRepo('apache/james-project', 'trunk'),
+    new BranchOnRepo('linagora/james-project', 'jmap')
+]
 
 branchesToBuild.each {
     def branchOnRepo = it
