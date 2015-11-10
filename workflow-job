@@ -12,7 +12,7 @@ import org.kohsuke.github.GHRepository
 
 def dockerIp = '62.210.100.33'
 def hostname = 'james.linagora.com'
-def maxRetries = 60
+def maxRetries = 600
 def author = extractUsername()
 def authorParentURL = "https://github.com/${author}/james-project.git"
 def repoName = extractRepoName()
