@@ -226,6 +226,7 @@ flows["${sha1}"] = {
             
             echo 'Waiting for James server to be deployed'
             try {
+                waitForCommandSuccess("docker exec ${containers.cassandra} cqlsh -e 'describe columnfamily system.local;'", maxRetries)
                 waitForCommandSuccess("docker exec ${containers.james} ${jamesCliWithOptions} listusers", maxRetries)
             } catch (Exception e) {
                 sh "docker logs ${containers.james}"
