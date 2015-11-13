@@ -12,7 +12,7 @@ import org.kohsuke.github.GHRepository
 
 def dockerIp = '62.210.100.33'
 def hostname = 'james.linagora.com'
-def maxRetries = 600
+def maxRetries = 120
 def author = extractUsername()
 def authorParentURL = "https://github.com/${author}/james-project.git"
 def repoName = extractRepoName()
@@ -225,8 +225,11 @@ flows["${sha1}"] = {
             sh "docker run --detach=true --name=${containers.james} --hostname ${hostname} --expose=143 --publish-all=true ${jamesLinks} ${images.james}"
             
             echo 'Waiting for James server to be deployed'
-            waitForCommandSuccess("docker exec ${containers.james} ${jamesCliWithOptions} listusers", maxRetries)
-            sh "docker logs ${containers.james}"
+            try {
+                waitForCommandSuccess("docker exec ${containers.james} ${jamesCliWithOptions} listusers", maxRetries)
+            } catch (Exception e) {
+                sh "docker logs ${containers.james}"
+            }
             deploying.success();
         }
         node {
