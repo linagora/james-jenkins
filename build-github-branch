@@ -8,7 +8,8 @@ class BranchOnRepo {
 
 def branchesToBuild = [
     new BranchOnRepo('apache/james-project', 'trunk'),
-    new BranchOnRepo('linagora/james-project', 'jmap')
+    new BranchOnRepo('linagora/james-project', 'jmap'),
+    new BranchOnRepo('mbaechler/james-project', 'smtp-build-lock')
 ]
 
 branchesToBuild.each {
