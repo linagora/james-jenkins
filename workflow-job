@@ -219,6 +219,11 @@ flows["${sha1}"] = {
             sh "cd dockerfiles/run/guice; docker cp ${containers.jamesCompile}:${cliLibPath} destination"
             
             sh "docker run --detach=true --name=${containers.cassandra} ${images.cassandra}"
+	    try {
+               waitForCommandSuccess("docker exec ${containers.cassandra} cqlsh -e 'describe columnfamily system.local;'", maxRetries)
+            } catch (Exception e) {
+                sh "docker logs ${containers.cassandra}"
+            }
             sh "docker run --detach=true --name=${containers.elasticSearch} ${images.elasticSearch}"
             sh "cd dockerfiles/run/guice; docker build --tag=${images.james} ."
             dockering.success()
@@ -226,7 +231,6 @@ flows["${sha1}"] = {
             
             echo 'Waiting for James server to be deployed'
             try {
-                waitForCommandSuccess("docker exec ${containers.cassandra} cqlsh -e 'describe columnfamily system.local;'", maxRetries)
                 waitForCommandSuccess("docker exec ${containers.james} ${jamesCliWithOptions} listusers", maxRetries)
             } catch (Exception e) {
                 sh "docker logs ${containers.james}"
