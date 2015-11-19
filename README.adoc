@@ -43,12 +43,12 @@ launching jenkins. Then :
 
 ----
 $docker build --tag myjenkins .
-$docker run -p 8080:8080 -p 8083:8083 --volumes-from keys --env JENKINS_URL="MY_JENKINS_URL" --env GITHUB_TOKEN="MY_GITHUB_TOKEN" --env SLACK_TOKEN="MY_SLACK_TOKEN" --name jks myjenkins
+$docker run -p 8083:8083 --volumes-from keys --env JENKINS_URL="MY_JENKINS_URL" --env GITHUB_TOKEN="MY_GITHUB_TOKEN" --env SLACK_TOKEN="MY_SLACK_TOKEN" --name jks myjenkins
 ----
 
 Where:
 
- - __MY_JENKINS_URL__: is the external URL of your jenkins (ex. "http://ci-james.org:8080/")
+ - __MY_JENKINS_URL__: is the external URL of your jenkins (ex. "https://ci-james.org:8083/")
  - __MY_GITHUB_TOKEN__: is the token used to access the GitHub API (https://github.com/settings/tokens)
  - __MY_SLACK_TOKEN__: is the token used to access to Slack (https://my.slack.com/services/new/jenkins-ci) +
 If not given, the slack plugin will not be enabled.
@@ -56,7 +56,7 @@ If not given, the slack plugin will not be enabled.
 Then, you can open it in your browser :
 
 ----
-$firefox http://`docker inspect --format {{.NetworkSettings.IPAddress}} jks`:8080
+$firefox https://`docker inspect --format {{.NetworkSettings.IPAddress}} jks`:8083
 or
 $firefox https://MY_JENKINS_URL
 ----
