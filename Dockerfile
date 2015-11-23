@@ -30,3 +30,7 @@ COPY workflow-support.hpi /usr/share/jenkins/ref/plugins/workflow-support.jpi
 
 COPY create-dsl-job.groovy /usr/share/jenkins/ref/init.groovy.d/create-dsl-job.groovy
 COPY use-ldap-authentication.groovy  /usr/share/jenkins/ref/init.groovy.d/use-ldap-authentication.groovy
+
+ENV JENKINS_OPTS --httpsPort=8083 --httpsCertificate=/keys/httpsCert.pem --httpsPrivateKey=/keys/httpsKey.pem
+EXPOSE 8083
+
