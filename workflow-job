@@ -173,6 +173,18 @@ def sha1OrTrunk = {
     return sha1;
 }
 
+def isTrunk = {
+    return sha1OrTrunk() == 'trunk';
+}
+
+def dockerUser = {
+    return System.getenv("DOCKER_USER");
+}
+
+def publishToDocker = {
+    return isTrunk() && dockerUser() != null;
+}
+
 flows["${sha1}"] = {
     def buildId = "${branch.toLowerCase()}-${UUID.randomUUID()}"
     def mergeBranch = "MERGE-${buildId}"
@@ -195,6 +207,11 @@ flows["${sha1}"] = {
     statuses.addPendingStatus(deploying);
     def testing = new CommitStatus(repoName, sha1, "Running integration tests", "5");
     statuses.addPendingStatus(testing);
+    def publishing;
+    if (publishToDocker()) {
+        publishing = new CommitStatus(repoName, sha1, "Publishing", "6");
+        statuses.addPendingStatus(publishing);
+    }
 
     try {
         node {
@@ -245,6 +262,16 @@ flows["${sha1}"] = {
             echo "Running integration tests on ${buildId}"
             sh "${findImapPort} && docker run ${verbose} --name=${containers.integration} --entrypoint=\"/root/integration_tests.sh\" ${useMavenCache} --volumes-from=${containers.gitPublish} ${images.jamesCompile} ${integrationArguments}"
             testing.success();
+        }
+        if (publishToDocker()) {
+            node {
+                echo "Publishing to Docker Hub"
+                def dUser = dockerUser();
+                sh "docker login -u ${dUser}"
+                sh "docker tag -f ${images.james} linagora/james-project"
+                sh "docker push linagora/james-project"
+                publishing.success();
+            }
         }
     } finally {
         node {

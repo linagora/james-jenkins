@@ -41,7 +41,7 @@ launching jenkins. Then :
 
 ----
 $docker build --tag myjenkins .
-$docker run -p 8080:8080 --volumes-from keys --env JENKINS_URL="MY_JENKINS_URL" --env GITHUB_TOKEN="MY_GITHUB_TOKEN" --env SLACK_TOKEN="MY_SLACK_TOKEN" --name jks myjenkins
+$docker run -p 8080:8080 --volumes-from keys --env JENKINS_URL="MY_JENKINS_URL" --env GITHUB_TOKEN="MY_GITHUB_TOKEN" --env SLACK_TOKEN="MY_SLACK_TOKEN" --env DOCKER_USER="MY_DOCKER_USER" --name jks myjenkins
 ----
 
 Where:
@@ -50,6 +50,8 @@ Where:
  - __MY_GITHUB_TOKEN__: is the token used to access the GitHub API (https://github.com/settings/tokens)
  - __MY_SLACK_TOKEN__: is the token used to access to Slack (https://my.slack.com/services/new/jenkins-ci) +
 If not given, the slack plugin will not be enabled.
+ - __MY_DOCKER_USER__: is the Docker Hub user used to publish the build, see publishing section (ex. myuser) +
+If not given, publishing to Docker Hub will not be enabled.
 
 Then, you can open it in your browser :
 
@@ -58,6 +60,16 @@ $firefox http://`docker inspect --format {{.NetworkSettings.IPAddress}} jks`:808
 or
 $firefox http://MY_JENKINS_URL
 ----
+
+=== Publishing to Docker 
+
+This feature is only available when building the *trunk* branch.
+
+You may want to publish the image produced by the build on a Docker Hub account.
+To achieve that, you have to provide a user name to the *docker run* command, +
+and fill the *.dockercfg* file located in the root folder of this project.
+
+This file is produced by the *docker login* command (https://docs.docker.com/engine/reference/commandline/login/).
 
 === Jobs requirements
 
