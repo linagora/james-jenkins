@@ -11,6 +11,7 @@ import org.kohsuke.github.GHRepository
 // $sha1 parameter : specifies the actual commit
 
 def dockerIp = '62.210.100.33'
+def continuousDeploymentDockerIp = '62.210.101.42'
 def hostname = 'james.linagora.com'
 def maxRetries = 120
 def author = extractUsername()
@@ -160,9 +161,12 @@ def waitForCommandSuccess (command, maxRetries) {
     }
 }
 
-env.DOCKER_HOST = "tcp://${dockerIp}:2376"
 env.DOCKER_CERT_PATH = '/keys/'
 env.DOCKER_TLS_VERIFY = 'TRUE'
+
+def setDockerHost(dockerHost) {
+   env.DOCKER_HOST = "tcp://${dockerHost}:2376"
+}
 
 def flows = [:]
 
@@ -185,7 +189,17 @@ def publishToDocker = {
     return isTrunk() && dockerUser() != null;
 }
 
+def isAlive(dockerContainer) {
+   try {
+       sh "docker inspect ${dockerContainer}"
+       return true;
+   } catch (Exception e) {
+       return false;
+   }
+}
+
 flows["${sha1}"] = {
+    setDockerHost(dockerIp)
     def buildId = "${branch.toLowerCase()}-${UUID.randomUUID()}"
     def mergeBranch = "MERGE-${buildId}"
     def images = new Images(buildId);
@@ -208,9 +222,12 @@ flows["${sha1}"] = {
     def testing = new CommitStatus(repoName, sha1, "Running integration tests", "5");
     statuses.addPendingStatus(testing);
     def publishing;
+    def continuousDeployment;
     if (publishToDocker()) {
         publishing = new CommitStatus(repoName, sha1, "Publishing", "6");
         statuses.addPendingStatus(publishing);
+        continuousDeployment = new CommitStatus(repoName, sha1, "Continuous Deployment", "7");
+        statuses.addPendingStatus(continuousDeployment);
     }
 
     try {
@@ -272,10 +289,21 @@ flows["${sha1}"] = {
                 sh "docker push linagora/james-project"
                 publishing.success();
             }
+            node {
+                echo "Continuous Deployment"
+                setDockerHost(continuousDeploymentDockerIp)
+                sh "docker pull linagora/james-project"
+                if (isAlive("james-project")) {
+                    sh "docker rm -f james-project"
+                }
+                sh "docker run --hostname open-paas.org -p '80:80' -p '25:25' -p '110:110' -p '143:143' -p '465:465' -p '587:587' -p '993:993' --link cassandra:cassandra --link elasticsearch:elasticsearch -d --name james-project -t linagora/james-project"
+                continuousDeployment.success();
+            }
         }
     } finally {
         node {
             echo "Cleaning ${buildId}"
+            setDockerHost(dockerIp)
             deleteContainer(containers.gitPublish)
             deleteImage(images.gitPublish)
 
