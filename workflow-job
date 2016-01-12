@@ -231,21 +231,21 @@ flows["${sha1}"] = {
     }
 
     try {
+        stage "Perform Merge"
         node {
-            echo "Perform Merge"
             git url: authorParentURL, branch: branch
             sh "docker build --tag ${images.gitPublish} -f dockerfiles/merge/Dockerfile ."
             sh "docker run ${verbose} -t --name ${containers.gitPublish} -v /origin ${images.gitPublish} ${sha1ToBuild} ${mergeBranch}"
             merging.success();
         }
+        stage "Building ${buildId}"
         node {
-            echo "Building ${buildId}"
             sh "docker build --tag=${images.jamesCompile} dockerfiles/compilation/java-8"
             sh "cd dockerfiles/; docker run ${verbose} --name=${containers.jamesCompile} ${useMavenCache} --volumes-from=${containers.gitPublish} --volume=/destination ${images.jamesCompile} ${mergeBranch}"
             building.success();
         }
+        stage "Deploying ${buildId}"
         node {
-            echo "Deploying ${buildId}"
             sh "cd dockerfiles/run/guice; docker cp ${containers.keystore}:${keystorePath} destination/conf"
             sh "cd dockerfiles/run/guice; docker cp ${containers.jamesCompile}:${jarPath} destination"
             sh "cd dockerfiles/run/guice; docker cp ${containers.jamesCompile}:${libPath} destination"
@@ -271,8 +271,8 @@ flows["${sha1}"] = {
             }
             deploying.success();
         }
+        stage "Configuring James Server"
         node {
-            echo "Configuring James Server"
             sh "docker exec ${containers.james} ${jamesCliWithOptions} adddomain domain"
             sh "docker exec ${containers.james} ${jamesCliWithOptions} adduser imapuser@domain password"
              
@@ -281,16 +281,16 @@ flows["${sha1}"] = {
             testing.success();
         }
         if (publishToDocker()) {
+            stage "Publishing to Docker Hub"
             node {
-                echo "Publishing to Docker Hub"
                 def dUser = dockerUser();
                 sh "docker login -u ${dUser}"
                 sh "docker tag -f ${images.james} linagora/james-project"
                 sh "docker push linagora/james-project"
                 publishing.success();
             }
+            stage "Continuous Deployment"
             node {
-                echo "Continuous Deployment"
                 setDockerHost(continuousDeploymentDockerIp)
                 sh "docker pull linagora/james-project"
                 if (isAlive("james-project")) {
@@ -301,8 +301,8 @@ flows["${sha1}"] = {
             }
         }
     } finally {
+        stage "Cleaning ${buildId}"
         node {
-            echo "Cleaning ${buildId}"
             setDockerHost(dockerIp)
             deleteContainer(containers.gitPublish)
             deleteImage(images.gitPublish)
