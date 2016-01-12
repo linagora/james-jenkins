@@ -99,11 +99,13 @@ public class Images implements Serializable {
     def elasticSearch = 'elasticsearch:1.5.2'
     def buildId;
     def jamesCompile;
+    def jamesCompileJava6;
     def james;
     def gitPublish;
     
     public Images(String buildId) {
         jamesCompile = 'james-parent-compile-' + buildId;
+        jamesCompileJava6 = 'james-parent-compile-java-6-' + buildId;
         james = 'james-server-' + buildId;
         gitPublish = 'git/publish-' + buildId;
     }
@@ -115,6 +117,7 @@ public class Containers implements Serializable {
     def elasticSearch;
     def integration;
     def jamesCompile;
+    def jamesCompileJava6;
     def james;
     def gitPublish;
 
@@ -123,6 +126,7 @@ public class Containers implements Serializable {
         elasticSearch = 'elasticSearch-' + buildId;
         integration = 'integration-' + buildId;
         jamesCompile = 'james-parent-compile-' + buildId;
+        jamesCompileJava6 = 'james-parent-compile-java-6-' + buildId;
         james = 'james-server-' + buildId;
         gitPublish = 'git-publish-' + buildId;
     }
@@ -240,8 +244,13 @@ flows["${sha1}"] = {
         }
         stage "Building ${buildId}"
         node {
-            sh "docker build --tag=${images.jamesCompile} dockerfiles/compilation/java-8"
-            sh "cd dockerfiles/; docker run ${verbose} --name=${containers.jamesCompile} ${useMavenCache} --volumes-from=${containers.gitPublish} --volume=/destination ${images.jamesCompile} ${mergeBranch}"
+            parallel("Building Java 8 ${buildId}": {
+                sh "docker build --tag=${images.jamesCompile} dockerfiles/compilation/java-8"
+                sh "cd dockerfiles/; docker run ${verbose} --name=${containers.jamesCompile} ${useMavenCache} --volumes-from=${containers.gitPublish} --volume=/destination ${images.jamesCompile} ${mergeBranch}"
+            }, "Building Java 6 ${buildId}": {
+                sh "docker build --tag=${images.jamesCompileJava6} dockerfiles/compilation/java-6"
+                sh "cd dockerfiles/; docker run ${verbose} --name=${containers.jamesCompileJava6} ${useMavenCache} --volumes-from=${containers.gitPublish} --volume=/destination ${images.jamesCompileJava6} -s ${mergeBranch}"
+            })
             building.success();
         }
         stage "Deploying ${buildId}"
@@ -309,6 +318,8 @@ flows["${sha1}"] = {
 
             deleteContainer(containers.jamesCompile)
             deleteImage(images.jamesCompile)
+            deleteContainer(containers.jamesCompileJava6)
+            deleteImage(images.jamesCompileJava6)
 
             deleteContainer(containers.cassandra)
             deleteContainer(containers.elasticSearch)
