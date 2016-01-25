@@ -182,15 +182,15 @@ def setDockerHost(dockerHost) {
 
 def flows = [:]
 
-def sha1OrTrunk = {
+def sha1OrBranch = {
     if (sha1 == null) {
-        return 'trunk';
+        return "${branch}";
     }
     return sha1;
 }
 
 def isTrunk = {
-    return sha1OrTrunk() == 'trunk';
+    return sha1OrBranch() == 'trunk';
 }
 
 def dockerUser = {
@@ -219,7 +219,7 @@ flows["${sha1}"] = {
     def jamesLinks = "--link ${containers.cassandra}:cassandra --link ${containers.elasticSearch}:elasticsearch"
     def findImapPort = "export JAMES_PORT=`docker inspect -f '{{(index (index .NetworkSettings.Ports \"143/tcp\") 0).HostPort}}' ${containers.james}`"
     def findImapPortJava6 = "export JAMES_PORT=`docker inspect -f '{{(index (index .NetworkSettings.Ports \"143/tcp\") 0).HostPort}}' ${containers.jamesJava6}`"
-    def sha1ToBuild = sha1OrTrunk()
+    def sha1ToBuild = sha1OrBranch()
     def integrationArguments = "${dockerIp} \$JAMES_PORT ${sha1ToBuild}"
     def verbose = "-a stdout -a stderr"
         
