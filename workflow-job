@@ -101,12 +101,14 @@ public class Images implements Serializable {
     def jamesCompile;
     def jamesCompileJava6;
     def james;
+    def jamesJava6;
     def gitPublish;
     
     public Images(String buildId) {
         jamesCompile = 'james-parent-compile-' + buildId;
         jamesCompileJava6 = 'james-parent-compile-java-6-' + buildId;
         james = 'james-server-' + buildId;
+        jamesJava6 = 'james-server-java-6-' + buildId;
         gitPublish = 'git/publish-' + buildId;
     }
 }
@@ -116,28 +118,34 @@ public class Containers implements Serializable {
     def cassandra;
     def elasticSearch;
     def integration;
+    def integrationJava6;
     def jamesCompile;
     def jamesCompileJava6;
     def james;
+    def jamesJava6;
     def gitPublish;
 
     public Containers(String buildId) {
         cassandra = 'cassandra-' + buildId;
         elasticSearch = 'elasticSearch-' + buildId;
         integration = 'integration-' + buildId;
+        integration = 'integration-java-6-' + buildId;
         jamesCompile = 'james-parent-compile-' + buildId;
         jamesCompileJava6 = 'james-parent-compile-java-6-' + buildId;
         james = 'james-server-' + buildId;
+        jamesJava6 = 'james-server-java-6-' + buildId;
         gitPublish = 'git-publish-' + buildId;
     }
 }
 
 def jarPath = '/destination/james-server-cassandra-guice-3.0.0-beta5-SNAPSHOT.jar' 
 def libPath = '/destination/james-server-cassandra-guice-3.0.0-beta5-SNAPSHOT.lib' 
+def zipPath = '/destination/james-server-app-3.0.0-beta5-SNAPSHOT-app.zip'
 def cliJarPath = '/destination/james-server-cli-3.0.0-beta5-SNAPSHOT.jar'
 def cliLibPath = '/destination/james-server-cli-3.0.0-beta5-SNAPSHOT.lib'
 def keystorePath = '/keys/keystore'
 def jamesCliWithOptions = 'java -jar /root/james-cli.jar -h 127.0.0.1'
+def jamesCliWithOptionsSpring = '/root/james-server-app-3.0.0-beta5-SNAPSHOT/bin/james-cli.sh -h 127.0.0.1 -p 9999'
 def useMavenCache = '--volumes-from maven-cache-deploy'
 
 def executeCommand (command) {
@@ -174,15 +182,15 @@ def setDockerHost(dockerHost) {
 
 def flows = [:]
 
-def sha1OrTrunk = {
+def sha1OrBranch = {
     if (sha1 == null) {
-        return 'trunk';
+        return "${branch}";
     }
     return sha1;
 }
 
 def isTrunk = {
-    return sha1OrTrunk() == 'trunk';
+    return sha1OrBranch() == 'trunk';
 }
 
 def dockerUser = {
@@ -210,7 +218,8 @@ flows["${sha1}"] = {
     def containers = new Containers(buildId);
     def jamesLinks = "--link ${containers.cassandra}:cassandra --link ${containers.elasticSearch}:elasticsearch"
     def findImapPort = "export JAMES_PORT=`docker inspect -f '{{(index (index .NetworkSettings.Ports \"143/tcp\") 0).HostPort}}' ${containers.james}`"
-    def sha1ToBuild = sha1OrTrunk()
+    def findImapPortJava6 = "export JAMES_PORT=`docker inspect -f '{{(index (index .NetworkSettings.Ports \"143/tcp\") 0).HostPort}}' ${containers.jamesJava6}`"
+    def sha1ToBuild = sha1OrBranch()
     def integrationArguments = "${dockerIp} \$JAMES_PORT ${sha1ToBuild}"
     def verbose = "-a stdout -a stderr"
         
@@ -289,6 +298,26 @@ flows["${sha1}"] = {
             sh "${findImapPort} && docker run ${verbose} --name=${containers.integration} --entrypoint=\"/root/integration_tests.sh\" ${useMavenCache} --volumes-from=${containers.gitPublish} ${images.jamesCompile} ${integrationArguments}"
             testing.success();
         }
+        stage "Java 6 integration tests"
+        node {
+            sh "cd dockerfiles/run/spring; docker cp ${containers.keystore}:${keystorePath} destination/conf"
+            sh "cd dockerfiles/run/spring; docker cp ${containers.jamesCompileJava6}:${zipPath} destination"
+            sh "cd dockerfiles/run/spring; docker build --tag=${images.jamesJava6} ."
+            sh "docker run --detach=true --name=${containers.jamesJava6} --hostname ${hostname} --expose=143 --publish-all=true ${images.jamesJava6}"
+    
+            echo 'Waiting for James server to be deployed'
+            try {
+                waitForCommandSuccess("docker exec ${containers.jamesJava6} ${jamesCliWithOptionsSpring} listusers", maxRetries)
+            } catch (Exception e) {
+                sh "docker logs ${containers.jamesJava6}"
+            }
+
+            sh "docker exec ${containers.jamesJava6} ${jamesCliWithOptionsSpring} adddomain domain"
+            sh "docker exec ${containers.jamesJava6} ${jamesCliWithOptionsSpring} adduser imapuser@domain password"
+
+            echo "Running integration tests on ${buildId}"
+            sh "${findImapPortJava6} && docker run ${verbose} --name=${containers.integrationJava6} --entrypoint=\"/root/integration_tests.sh\" ${useMavenCache} --volumes-from=${containers.gitPublish} ${images.jamesCompileJava6} ${integrationArguments}"
+        }
         if (publishToDocker()) {
             stage "Publishing to Docker Hub"
             node {
@@ -325,8 +354,11 @@ flows["${sha1}"] = {
             deleteContainer(containers.elasticSearch)
             deleteContainer(containers.james)
             deleteImage(images.james)
+            deleteContainer(containers.jamesJava6)
+            deleteImage(images.jamesJava6)
 
             deleteContainer(containers.integration)
+            deleteContainer(containers.integrationJava6)
             statuses.failPendingStatuses();
         }
     }
