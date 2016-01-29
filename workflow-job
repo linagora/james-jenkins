@@ -129,7 +129,7 @@ public class Containers implements Serializable {
         cassandra = 'cassandra-' + buildId;
         elasticSearch = 'elasticSearch-' + buildId;
         integration = 'integration-' + buildId;
-        integration = 'integration-java-6-' + buildId;
+        integrationJava6 = 'integration-java-6-' + buildId;
         jamesCompile = 'james-parent-compile-' + buildId;
         jamesCompileJava6 = 'james-parent-compile-java-6-' + buildId;
         james = 'james-server-' + buildId;
