@@ -7,7 +7,7 @@ class BranchOnRepo {
 }
 
 def branchesToBuild = [
-    new BranchOnRepo('apache/james-project', 'trunk')
+    new BranchOnRepo('apache/james-project', 'master')
 ]
 
 branchesToBuild.each {
