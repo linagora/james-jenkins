@@ -189,8 +189,8 @@ def sha1OrBranch = {
     return sha1;
 }
 
-def isTrunk = {
-    return sha1OrBranch() == 'trunk';
+def isMaster = {
+    return sha1OrBranch() == 'master';
 }
 
 def dockerUser = {
@@ -198,7 +198,7 @@ def dockerUser = {
 }
 
 def publishToDocker = {
-    return isTrunk() && dockerUser() != null;
+    return isMaster() && dockerUser() != null;
 }
 
 def isAlive(dockerContainer) {

@@ -63,7 +63,7 @@ $firefox http://MY_JENKINS_URL
 
 === Publishing to Docker 
 
-This feature is only available when building the *trunk* branch.
+This feature is only available when building the *master* branch.
 
 You may want to publish the image produced by the build on a Docker Hub account.
 To achieve that, you have to provide a user name to the *docker run* command, +
