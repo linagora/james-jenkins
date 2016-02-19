@@ -222,7 +222,8 @@ flows["${sha1}"] = {
     def sha1ToBuild = sha1OrBranch()
     def integrationArguments = "${dockerIp} \$JAMES_PORT ${sha1ToBuild}"
     def verbose = "-a stdout -a stderr"
-        
+    def dockerEnv = "--env=DOCKER_HOST=${env.DOCKER_HOST} --env=DOCKER_CERT_PATH=${env.DOCKER_CERT_PATH}"
+
     def statuses = new CommitStatuses();
     def merging = new CommitStatus(repoName, sha1, "Merging", "1");
     statuses.addPendingStatus(merging);
@@ -255,10 +256,10 @@ flows["${sha1}"] = {
         node {
             parallel("Building Java 8 ${buildId}": {
                 sh "docker build --tag=${images.jamesCompile} dockerfiles/compilation/java-8"
-                sh "cd dockerfiles/; docker run ${verbose} --name=${containers.jamesCompile} ${useMavenCache} --volumes-from=${containers.gitPublish} --volume=/destination ${images.jamesCompile} ${mergeBranch}"
+                sh "cd dockerfiles/; docker run ${verbose} --name=${containers.jamesCompile} ${dockerEnv} ${useMavenCache} --volumes-from=${containers.gitPublish} --volume=/destination ${images.jamesCompile} ${mergeBranch}"
             }, "Building Java 6 ${buildId}": {
                 sh "docker build --tag=${images.jamesCompileJava6} dockerfiles/compilation/java-6"
-                sh "cd dockerfiles/; docker run ${verbose} --name=${containers.jamesCompileJava6} ${useMavenCache} --volumes-from=${containers.gitPublish} --volume=/destination ${images.jamesCompileJava6} -s ${mergeBranch}"
+                sh "cd dockerfiles/; docker run ${verbose} --name=${containers.jamesCompileJava6} ${dockerEnv} ${useMavenCache} --volumes-from=${containers.gitPublish} --volume=/destination ${images.jamesCompileJava6} -s ${mergeBranch}"
             })
             building.success();
         }
