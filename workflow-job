@@ -256,10 +256,10 @@ flows["${sha1}"] = {
         node {
             parallel("Building Java 8 ${buildId}": {
                 sh "docker build --tag=${images.jamesCompile} dockerfiles/compilation/java-8"
-                sh "cd dockerfiles/; docker run ${verbose} --name=${containers.jamesCompile} ${dockerEnv} ${useMavenCache} --volumes-from=${containers.gitPublish} --volume=/destination ${images.jamesCompile} ${mergeBranch}"
+                sh "cd dockerfiles/; docker run ${verbose} --tmpfs /james-project:rw,size=4g --name=${containers.jamesCompile} ${dockerEnv} ${useMavenCache} --volumes-from=${containers.gitPublish} --volume=/destination ${images.jamesCompile} ${mergeBranch}"
             }, "Building Java 6 ${buildId}": {
                 sh "docker build --tag=${images.jamesCompileJava6} dockerfiles/compilation/java-6"
-                sh "cd dockerfiles/; docker run ${verbose} --name=${containers.jamesCompileJava6} ${dockerEnv} ${useMavenCache} --volumes-from=${containers.gitPublish} --volume=/destination ${images.jamesCompileJava6} -s ${mergeBranch}"
+                sh "cd dockerfiles/; docker run ${verbose} --tmpfs /james-project:rw,size=4g --name=${containers.jamesCompileJava6} ${dockerEnv} ${useMavenCache} --volumes-from=${containers.gitPublish} --volume=/destination ${images.jamesCompileJava6} -s ${mergeBranch}"
             })
             building.success();
         }
