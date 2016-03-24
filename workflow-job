@@ -318,7 +318,7 @@ flows["${sha1}"] = {
             sh "docker exec ${containers.jamesJava6} ${jamesCliWithOptionsSpring} adduser imapuser@domain password"
 
             echo "Running integration tests on ${buildId}"
-            sh "${findImapPortJava6} && docker run ${verbose} --name=${containers.integrationJava6} --entrypoint=\"/root/integration_tests.sh\" ${useMavenCache} --volumes-from=${containers.gitPublish} ${images.jamesCompileJava6} ${integrationArguments}"
+            sh "${findImapPortJava6} && docker run ${verbose} --name=${containers.integrationJava6} --entrypoint=\"/root/integration_tests.sh\" ${useMavenCache} --volumes-from=${containers.gitPublish} ${images.jamesCompile} ${integrationArguments}"
         }
         if (publishToDocker()) {
             stage "Publishing to Docker Hub"
