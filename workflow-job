@@ -95,7 +95,7 @@ public class CommitStatus implements Serializable {
 }
 
 public class Images implements Serializable {
-    def cassandra = 'cassandra:2.2.3'
+    def cassandra = 'cassandra:3.0.5'
     def elasticSearch = 'elasticsearch:2.2.1'
     def buildId;
     def jamesCompile;
