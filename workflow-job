@@ -204,7 +204,7 @@ def publishToDocker = {
 
 def isAlive(dockerContainer) {
    try {
-       sh "docker inspect ${dockerContainer}"
+       sh "docker inspect -f '{{.State.Status}}' ${dockerContainer} | grep running"
        return true;
    } catch (Exception e) {
        return false;
