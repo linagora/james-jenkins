@@ -223,7 +223,7 @@ flows["${sha1}"] = {
     def sha1ToBuild = sha1OrBranch()
     def integrationArguments = "${dockerIp} \$JAMES_PORT ${sha1ToBuild}"
     def verbose = "-a stdout -a stderr"
-    def dockerEnv = "--env=DOCKER_HOST=${env.DOCKER_HOST} --env=DOCKER_CERT_PATH=${env.DOCKER_CERT_PATH} --env=DOCKER_TLS_VERIFY=TRUE"
+    def dockerEnv = "--net='host' --env=DOCKER_HOST=${env.DOCKER_HOST} --env=DOCKER_CERT_PATH=${env.DOCKER_CERT_PATH} --env=DOCKER_TLS_VERIFY=TRUE"
 
     def statuses = new CommitStatuses();
     def merging = new CommitStatus(repoName, sha1, "Merging", "1");
