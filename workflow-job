@@ -198,6 +198,10 @@ def dockerUser = {
     return System.getenv("DOCKER_USER");
 }
 
+def dockerPassword = {
+    return System.getenv("DOCKER_PASSWORD");
+}
+
 def publishToDocker = {
     return isMaster() && dockerUser() != null;
 }
@@ -324,7 +328,8 @@ flows["${sha1}"] = {
             stage "Publishing to Docker Hub"
             node {
                 def dUser = dockerUser();
-                sh "docker login -u ${dUser}"
+                def dPassword = dockerPassword();
+                sh "docker login -u ${dUser} -p ${dPassword}"
                 sh "docker tag -f ${images.james} linagora/james-project"
                 sh "docker push linagora/james-project"
                 publishing.success();
