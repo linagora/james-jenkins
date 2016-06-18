@@ -5,6 +5,7 @@ REPOSITORIES.each {
     def repository = it
     def url = GITHUB_BASE_URL + repository
     job('build pull-requests') {
+        concurrentBuild()
         githubProjectUrl(url)
         triggers {
             pullRequest {
