@@ -261,10 +261,10 @@ flows["${sha1}"] = {
         node {
             parallel("Building Java 8 ${buildId}": {
                 sh "docker build --tag=${images.jamesCompile} dockerfiles/compilation/java-8"
-                sh "cd dockerfiles/; docker run ${verbose} --tmpfs=/tmp:rw,size=4g --tmpfs=/james-project:rw,size=4g --name=${containers.jamesCompile} ${dockerEnv} ${useMavenCache} -e DOCKER_CONTAINER=${containers.jamesCompile} --volumes-from=${containers.keys} --volumes-from=${containers.gitPublish} --volume=/destination ${images.jamesCompile} ${mergeBranch}"
+                sh "cd dockerfiles/; docker run --rm ${verbose} --tmpfs=/tmp:rw,size=4g --tmpfs=/james-project:rw,size=4g --name=${containers.jamesCompile} ${dockerEnv} ${useMavenCache} -e DOCKER_CONTAINER=${containers.jamesCompile} --volumes-from=${containers.keys} --volumes-from=${containers.gitPublish} --volume=/destination ${images.jamesCompile} ${mergeBranch}"
             }, "Building Java 6 ${buildId}": {
                 sh "docker build --tag=${images.jamesCompileJava6} dockerfiles/compilation/java-6"
-                sh "cd dockerfiles/; docker run ${verbose} --tmpfs=/tmp:rw,size=4g --tmpfs=/james-project:rw,size=4g --name=${containers.jamesCompileJava6} ${dockerEnv} ${useMavenCache} --volumes-from=${containers.keys} --volumes-from=${containers.gitPublish} --volume=/destination ${images.jamesCompileJava6} -s ${mergeBranch}"
+                sh "cd dockerfiles/; docker run --rm ${verbose} --tmpfs=/tmp:rw,size=4g --tmpfs=/james-project:rw,size=4g --name=${containers.jamesCompileJava6} ${dockerEnv} ${useMavenCache} --volumes-from=${containers.keys} --volumes-from=${containers.gitPublish} --volume=/destination ${images.jamesCompileJava6} -s ${mergeBranch}"
             })
             building.success();
         }
@@ -301,7 +301,7 @@ flows["${sha1}"] = {
             sh "docker exec ${containers.james} ${jamesCliWithOptions} adduser imapuser@domain password"
              
             echo "Running integration tests on ${buildId}"
-            sh "${findImapPort} && docker run ${verbose} --name=${containers.integration} --entrypoint=\"/root/integration_tests.sh\" ${useMavenCache} --volumes-from=${containers.gitPublish} ${images.jamesCompile} ${integrationArguments}"
+            sh "${findImapPort} && docker run --rm ${verbose} --name=${containers.integration} --entrypoint=\"/root/integration_tests.sh\" ${useMavenCache} --volumes-from=${containers.gitPublish} ${images.jamesCompile} ${integrationArguments}"
             testing.success();
         }
         stage "Java 6 integration tests"
@@ -322,7 +322,7 @@ flows["${sha1}"] = {
             sh "docker exec ${containers.jamesJava6} ${jamesCliWithOptionsSpring} adduser imapuser@domain password"
 
             echo "Running integration tests on ${buildId}"
-            sh "${findImapPortJava6} && docker run ${verbose} --name=${containers.integrationJava6} --entrypoint=\"/root/integration_tests.sh\" ${useMavenCache} --volumes-from=${containers.gitPublish} ${images.jamesCompile} ${integrationArguments}"
+            sh "${findImapPortJava6} && docker run --rm ${verbose} --name=${containers.integrationJava6} --entrypoint=\"/root/integration_tests.sh\" ${useMavenCache} --volumes-from=${containers.gitPublish} ${images.jamesCompile} ${integrationArguments}"
         }
         if (publishToDocker()) {
             stage "Publishing to Docker Hub"
@@ -352,9 +352,7 @@ flows["${sha1}"] = {
             deleteContainer(containers.gitPublish)
             deleteImage(images.gitPublish)
 
-            deleteContainer(containers.jamesCompile)
             deleteImage(images.jamesCompile)
-            deleteContainer(containers.jamesCompileJava6)
             deleteImage(images.jamesCompileJava6)
 
             deleteContainer(containers.cassandra)
@@ -364,8 +362,6 @@ flows["${sha1}"] = {
             deleteContainer(containers.jamesJava6)
             deleteImage(images.jamesJava6)
 
-            deleteContainer(containers.integration)
-            deleteContainer(containers.integrationJava6)
             statuses.failPendingStatuses();
         }
     }
