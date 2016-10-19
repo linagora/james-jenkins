@@ -39,11 +39,5 @@ branchesToBuild.each {
                 }
             }
         }
-        publishers {
-            slackNotifications {
-                notifyFailure()
-                notifyBackToNormal()
-            }
-        }
     }
 }
