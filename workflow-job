@@ -139,14 +139,14 @@ public class Containers implements Serializable {
     }
 }
 
-def jarPath = '/destination/james-server-cassandra-guice-3.0.0-beta5-SNAPSHOT.jar' 
-def libPath = '/destination/james-server-cassandra-guice-3.0.0-beta5-SNAPSHOT.lib' 
-def zipPath = '/destination/james-server-app-3.0.0-beta5-SNAPSHOT-app.zip'
-def cliJarPath = '/destination/james-server-cli-3.0.0-beta5-SNAPSHOT.jar'
-def cliLibPath = '/destination/james-server-cli-3.0.0-beta5-SNAPSHOT.lib'
+def jarPath = '/destination/james-server-cassandra-guice-3.0.0-beta6-SNAPSHOT.jar' 
+def libPath = '/destination/james-server-cassandra-guice-3.0.0-beta6-SNAPSHOT.lib' 
+def zipPath = '/destination/james-server-app-3.0.0-beta6-SNAPSHOT-app.zip'
+def cliJarPath = '/destination/james-server-cli-3.0.0-beta6-SNAPSHOT.jar'
+def cliLibPath = '/destination/james-server-cli-3.0.0-beta6-SNAPSHOT.lib'
 def keystorePath = '/keys/keystore'
 def jamesCliWithOptions = 'java -jar /root/james-cli.jar -h 127.0.0.1'
-def jamesCliWithOptionsSpring = '/root/james-server-app-3.0.0-beta5-SNAPSHOT/bin/james-cli.sh -h 127.0.0.1 -p 9999'
+def jamesCliWithOptionsSpring = '/root/james-server-app-3.0.0-beta6-SNAPSHOT/bin/james-cli.sh -h 127.0.0.1 -p 9999'
 def useMavenCache = '-v maven-cache-volume:/root/.m2'
 
 def executeCommand (command) {
