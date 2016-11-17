@@ -332,6 +332,9 @@ flows["${sha1}"] = {
                 sh "docker login -u ${dUser} -p ${dPassword}"
                 sh "docker tag -f ${images.james} linagora/james-project"
                 sh "docker push linagora/james-project"
+
+                sh "docker tag -f ${images.jamesJava6} linagora/james-jpa-spring"
+                sh "docker push linagora/james-jpa-spring"
                 publishing.success();
             }
             stage "Continuous Deployment"
