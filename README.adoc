@@ -107,3 +107,23 @@ Then, run these command to set up this container on nodes that will hosts James 
 $docker build -f DockerfileJamesTlsKeyContainer -t keystore .
 $docker run -v /keys --name keystore keystore
 ----
+
+=== Launch Jenkins on the specified branch
+If you change the workflow-job and would like to launch Jenkins build on new branch
+
+====Create new "Workflow" which point to you james-jenkins branch with
+
+Repositories point to your github repository
+Repositories point to your branch
+Script Path	point to groovy script that you want to run
+
+====Clone new job from base job: create "New item" --> Choose "Copy existing Item" with the base job's name
+
+====Edit the new cloned job 
+
+=====GitHub project point to your github repository
+=====Projects to build point to above workflow
+=====Define the parameter
+repoURL=<yours_repository>
+branch=<yours_branch>
+sha1=<your_last_commit_id_at_branch> 
