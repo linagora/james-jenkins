@@ -439,7 +439,7 @@ flows["${sha1}"] = {
                 sh "docker push linagora/james-jpa-spring"
 
                 sh "docker tag -f ${images.jamesJPA} linagora/james-jpa-guice"
-                sh "docker push linagora/james-guice-jpa"
+                sh "docker push linagora/james-jpa-guice"
 
                 publishing.success();
             }
