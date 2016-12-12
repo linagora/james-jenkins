@@ -277,11 +277,11 @@ flows["${sha1}"] = {
     def deployingSpringJPA = new CommitStatus(repoName, sha1, "Deploying Spring JPA", "9");
     statuses.addPendingStatus(deployingSpringJPA);
 
-    def testingGuiceCassandra = new CommitStatus(repoName, sha1, "Running integration tests on Guice Cassandra", "10");
+    def testingGuiceCassandra = new CommitStatus(repoName, sha1, "Integrating Guice Cassandra", "10");
     statuses.addPendingStatus(testingGuiceCassandra);
-    def testingGuiceJPA = new CommitStatus(repoName, sha1, "Running integration tests on Guice JPA", "11");
+    def testingGuiceJPA = new CommitStatus(repoName, sha1, "Integrating Guice JPA", "11");
     statuses.addPendingStatus(testingGuiceJPA);
-    def testingSpringJPA = new CommitStatus(repoName, sha1, "Running integration tests on Spring JPA", "12");
+    def testingSpringJPA = new CommitStatus(repoName, sha1, "Integrating Spring JPA", "12");
     statuses.addPendingStatus(testingSpringJPA);
 
     def publishing;
