@@ -50,6 +50,23 @@ public class CommitStatuses implements Serializable {
     }
 }
 
+public class CommitStatusFactory implements Serializable {
+
+  private final String repoName;
+  private final String sha1;
+  private int stepNumber = 0;
+
+  public CommitStatusFactory(String repoName, String sha1) {
+    this.repoName = repoName;
+    this.sha1 = sha1;
+  }
+
+  public CommitStatus from(String description) {
+    stepNumber++;
+    return new CommitStatus(repoName, sha1, description, stepNumber);
+  }
+}
+
 public class CommitStatus implements Serializable {
     def repoName;
     def sha1;
@@ -57,11 +74,11 @@ public class CommitStatus implements Serializable {
     def context;
     def state;
 
-    public CommitStatus(String repoName, String sha1, String description, String step) {
+    public CommitStatus(String repoName, String sha1, String description, int stepNumber) {
         this.repoName = repoName;
         this.sha1 = sha1;
         this.description = description;
-        this.context = "workflow-job step " + step;
+        this.context = "workflow-job step " + stepNumber;
     }
 
     def pending() { createPendingCommitStatus(); }
@@ -261,44 +278,45 @@ flows["${sha1}"] = {
     def dockerEnv = "--env=DOCKER_HOST=${env.DOCKER_HOST} --env=DOCKER_CERT_PATH=${env.DOCKER_CERT_PATH} --env=DOCKER_TLS_VERIFY=TRUE"
 
     def statuses = new CommitStatuses();
-    def merging = new CommitStatus(repoName, sha1, "Merging", "1");
+    def commitStatusFactory = new CommitStatusFactory(repoName, sha1);
+    def merging = commitStatusFactory.from("Merging");
     statuses.addPendingStatus(merging);
 
-    def buildingJava6 = new CommitStatus(repoName, sha1, "Building java 6", "2");
+    def buildingJava6 = commitStatusFactory.from("Building java 6");
     statuses.addPendingStatus(buildingJava6);
-    def buildingJava8 = new CommitStatus(repoName, sha1, "Building java 8", "3");
+    def buildingJava8 = commitStatusFactory.from("Building java 8");
     statuses.addPendingStatus(buildingJava8);
 
-    def dockeringGuiceCassandra = new CommitStatus(repoName, sha1, "Dockering Guice Cassandra", "4");
+    def dockeringGuiceCassandra = commitStatusFactory.from("Dockering Guice Cassandra");
     statuses.addPendingStatus(dockeringGuiceCassandra);
-    def dockeringGuiceJPA = new CommitStatus(repoName, sha1, "Dockering Guice JPA", "5");
+    def dockeringGuiceJPA = commitStatusFactory.from("Dockering Guice JPA");
     statuses.addPendingStatus(dockeringGuiceJPA);
-    def dockeringSpringJPA = new CommitStatus(repoName, sha1, "Dockering Spring JPA", "6");
+    def dockeringSpringJPA = commitStatusFactory.from("Dockering Spring JPA");
     statuses.addPendingStatus(dockeringSpringJPA);
-    def dockeringGuiceCassandraLdap = new CommitStatus(repoName, sha1, "Building Guice Cassandra/Ldap", "7");
+    def dockeringGuiceCassandraLdap = commitStatusFactory.from("Building Guice Cassandra/Ldap");
     statuses.addPendingStatus(dockeringGuiceCassandraLdap);
 
-    def deployingGuiceCassandra = new CommitStatus(repoName, sha1, "Deploying Guice Cassandra", "8");
+    def deployingGuiceCassandra = commitStatusFactory.from("Deploying Guice Cassandra");
     statuses.addPendingStatus(deployingGuiceCassandra);
-    def deployingGuiceJPA = new CommitStatus(repoName, sha1, "Deploying Guice JPA", "9");
+    def deployingGuiceJPA = commitStatusFactory.from("Deploying Guice JPA");
     statuses.addPendingStatus(deployingGuiceJPA);
-    def deployingSpringJPA = new CommitStatus(repoName, sha1, "Deploying Spring JPA", "10");
+    def deployingSpringJPA = commitStatusFactory.from("Deploying Spring JPA");
     statuses.addPendingStatus(deployingSpringJPA);
 
-    def testingGuiceCassandra = new CommitStatus(repoName, sha1, "Integrating Guice Cassandra", "11");
+    def testingGuiceCassandra = commitStatusFactory.from("Integrating Guice Cassandra");
     statuses.addPendingStatus(testingGuiceCassandra);
-    def testingGuiceJPA = new CommitStatus(repoName, sha1, "Integrating Guice JPA", "12");
+    def testingGuiceJPA = commitStatusFactory.from("Integrating Guice JPA");
     statuses.addPendingStatus(testingGuiceJPA);
-    def testingSpringJPA = new CommitStatus(repoName, sha1, "Integrating Spring JPA", "13");
+    def testingSpringJPA = commitStatusFactory.from("Integrating Spring JPA");
     statuses.addPendingStatus(testingSpringJPA);
 
     def publishing;
     def continuousDeployment;
     def deployAndValidatingBuilder = [:]
     if (publishToDocker()) {
-        publishing = new CommitStatus(repoName, sha1, "Publishing", "14");
+        publishing = commitStatusFactory.from("Publishing");
         statuses.addPendingStatus(publishing);
-        continuousDeployment = new CommitStatus(repoName, sha1, "Continuous Deployment", "15");
+        continuousDeployment = commitStatusFactory.from("Continuous Deployment");
         statuses.addPendingStatus(continuousDeployment);
     }
 
