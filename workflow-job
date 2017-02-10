@@ -5,7 +5,7 @@ import org.kohsuke.github.GitHub
 import org.kohsuke.github.GHCommitState
 import org.kohsuke.github.GHRepository
 
-// This script must be called with 
+// This script must be called with
 // $branch parameter : branch to build specified (used by git workflow-plugin command)
 // $repoURL parameter : specifies the commiter GitHub repo URL
 // $sha1 parameter : specifies the actual commit
@@ -50,6 +50,23 @@ public class CommitStatuses implements Serializable {
     }
 }
 
+public class CommitStatusFactory implements Serializable {
+
+  private final String repoName;
+  private final String sha1;
+  private int stepNumber = 0;
+
+  public CommitStatusFactory(String repoName, String sha1) {
+    this.repoName = repoName;
+    this.sha1 = sha1;
+  }
+
+  public CommitStatus from(String description) {
+    stepNumber++;
+    return new CommitStatus(repoName, sha1, description, stepNumber);
+  }
+}
+
 public class CommitStatus implements Serializable {
     def repoName;
     def sha1;
@@ -57,11 +74,11 @@ public class CommitStatus implements Serializable {
     def context;
     def state;
 
-    public CommitStatus(String repoName, String sha1, String description, String step) {
+    public CommitStatus(String repoName, String sha1, String description, int stepNumber) {
         this.repoName = repoName;
         this.sha1 = sha1;
         this.description = description;
-        this.context = "workflow-job step " + step;
+        this.context = "workflow-job step " + stepNumber;
     }
 
     def pending() { createPendingCommitStatus(); }
@@ -101,14 +118,16 @@ public class Images implements Serializable {
     def jamesCompile;
     def jamesCompileJava6;
     def jamesCassandra;
+    def jamesCassandraLdap;
     def jamesJPA;
     def jamesJava6;
     def gitPublish;
-    
+
     public Images(String buildId) {
         jamesCompile = 'james-parent-compile-' + buildId;
         jamesCompileJava6 = 'james-parent-compile-java-6-' + buildId;
         jamesCassandra = 'james-server-cassandra-' + buildId;
+        jamesCassandraLdap = 'james-server-cassandra-ldap-' + buildId;
         jamesJPA = 'james-server-jpa-' + buildId;
         jamesJava6 = 'james-server-java-6-' + buildId;
         gitPublish = 'git/publish-' + buildId;
@@ -126,6 +145,7 @@ public class Containers implements Serializable {
     def jamesCompile;
     def jamesCompileJava6;
     def jamesCassandra;
+    def jamesCassandraLdap;
     def jamesJPA;
     def jamesJava6;
     def gitPublish;
@@ -139,19 +159,22 @@ public class Containers implements Serializable {
         jamesCompile = 'james-parent-compile-' + buildId;
         jamesCompileJava6 = 'james-parent-compile-java-6-' + buildId;
         jamesCassandra = 'james-server-cassandra-' + buildId;
+        jamesCassandraLdap = 'james-server-cassandra-ldap-' + buildId;
         jamesJPA = 'james-server-jpa-' + buildId;
         jamesJava6 = 'james-server-java-6-' + buildId;
         gitPublish = 'git-publish-' + buildId;
     }
 }
 
-def jarPathCassandra = '/cassandra/destination/james-server-cassandra-guice.jar' 
-def libPathCassandra = '/cassandra/destination/james-server-cassandra-guice.lib' 
+def jarPathCassandra = '/cassandra/destination/james-server-cassandra-guice.jar'
+def libPathCassandra = '/cassandra/destination/james-server-cassandra-guice.lib'
+def jarPathCassandraLdap = '/cassandra/destination/james-server-cassandra-ldap-guice.jar'
+def libPathCassandraLdap = '/cassandra/destination/james-server-cassandra-ldap-guice.lib'
 def cliJarPathCassandra = '/cassandra/destination/james-server-cli.jar'
 def clilibPathCassandra = '/cassandra/destination/james-server-cli.lib'
 
-def jarPathJPA = '/jpa/destination/james-server-jpa-guice.jar' 
-def libPathJPA = '/jpa/destination/james-server-jpa-guice.lib' 
+def jarPathJPA = '/jpa/destination/james-server-jpa-guice.jar'
+def libPathJPA = '/jpa/destination/james-server-jpa-guice.lib'
 def cliJarPathJPA = '/jpa/destination/james-server-cli.jar'
 def clilibPathJPA = '/jpa/destination/james-server-cli.lib'
 
@@ -255,42 +278,45 @@ flows["${sha1}"] = {
     def dockerEnv = "--env=DOCKER_HOST=${env.DOCKER_HOST} --env=DOCKER_CERT_PATH=${env.DOCKER_CERT_PATH} --env=DOCKER_TLS_VERIFY=TRUE"
 
     def statuses = new CommitStatuses();
-    def merging = new CommitStatus(repoName, sha1, "Merging", "1");
+    def commitStatusFactory = new CommitStatusFactory(repoName, sha1);
+    def merging = commitStatusFactory.from("Merging");
     statuses.addPendingStatus(merging);
 
-    def buildingJava6 = new CommitStatus(repoName, sha1, "Building java 6", "2");
+    def buildingJava6 = commitStatusFactory.from("Building java 6");
     statuses.addPendingStatus(buildingJava6);
-    def buildingJava8 = new CommitStatus(repoName, sha1, "Building java 8", "3");
+    def buildingJava8 = commitStatusFactory.from("Building java 8");
     statuses.addPendingStatus(buildingJava8);
 
-    def dockeringGuiceCassandra = new CommitStatus(repoName, sha1, "Dockering Guice Cassandra", "4");
+    def dockeringGuiceCassandra = commitStatusFactory.from("Dockering Guice Cassandra");
     statuses.addPendingStatus(dockeringGuiceCassandra);
-    def dockeringGuiceJPA = new CommitStatus(repoName, sha1, "Dockering Guice JPA", "5");
+    def dockeringGuiceJPA = commitStatusFactory.from("Dockering Guice JPA");
     statuses.addPendingStatus(dockeringGuiceJPA);
-    def dockeringSpringJPA = new CommitStatus(repoName, sha1, "Dockering Spring JPA", "6");
+    def dockeringSpringJPA = commitStatusFactory.from("Dockering Spring JPA");
     statuses.addPendingStatus(dockeringSpringJPA);
+    def dockeringGuiceCassandraLdap = commitStatusFactory.from("Building Guice Cassandra/Ldap");
+    statuses.addPendingStatus(dockeringGuiceCassandraLdap);
 
-    def deployingGuiceCassandra = new CommitStatus(repoName, sha1, "Deploying Guice Cassandra", "7");
+    def deployingGuiceCassandra = commitStatusFactory.from("Deploying Guice Cassandra");
     statuses.addPendingStatus(deployingGuiceCassandra);
-    def deployingGuiceJPA = new CommitStatus(repoName, sha1, "Deploying Guice JPA", "8");
+    def deployingGuiceJPA = commitStatusFactory.from("Deploying Guice JPA");
     statuses.addPendingStatus(deployingGuiceJPA);
-    def deployingSpringJPA = new CommitStatus(repoName, sha1, "Deploying Spring JPA", "9");
+    def deployingSpringJPA = commitStatusFactory.from("Deploying Spring JPA");
     statuses.addPendingStatus(deployingSpringJPA);
 
-    def testingGuiceCassandra = new CommitStatus(repoName, sha1, "Integrating Guice Cassandra", "10");
+    def testingGuiceCassandra = commitStatusFactory.from("Integrating Guice Cassandra");
     statuses.addPendingStatus(testingGuiceCassandra);
-    def testingGuiceJPA = new CommitStatus(repoName, sha1, "Integrating Guice JPA", "11");
+    def testingGuiceJPA = commitStatusFactory.from("Integrating Guice JPA");
     statuses.addPendingStatus(testingGuiceJPA);
-    def testingSpringJPA = new CommitStatus(repoName, sha1, "Integrating Spring JPA", "12");
+    def testingSpringJPA = commitStatusFactory.from("Integrating Spring JPA");
     statuses.addPendingStatus(testingSpringJPA);
 
     def publishing;
     def continuousDeployment;
     def deployAndValidatingBuilder = [:]
     if (publishToDocker()) {
-        publishing = new CommitStatus(repoName, sha1, "Publishing", "6");
+        publishing = commitStatusFactory.from("Publishing");
         statuses.addPendingStatus(publishing);
-        continuousDeployment = new CommitStatus(repoName, sha1, "Continuous Deployment", "7");
+        continuousDeployment = commitStatusFactory.from("Continuous Deployment");
         statuses.addPendingStatus(continuousDeployment);
     }
 
@@ -325,7 +351,7 @@ flows["${sha1}"] = {
               sh "cd dockerfiles/run/guice/cassandra; docker cp ${containers.jamesCompile}:${libPathCassandra} destination"
               sh "cd dockerfiles/run/guice/cassandra; docker cp ${containers.jamesCompile}:${cliJarPathCassandra} destination"
               sh "cd dockerfiles/run/guice/cassandra; docker cp ${containers.jamesCompile}:${clilibPathCassandra} destination"
-              
+
               sh "docker run --detach=true --name=${containers.cassandra} ${images.cassandra}"
 	          try {
                  waitForCommandSuccess("docker exec ${containers.cassandra} cqlsh -e 'describe columnfamily system.local;'", maxRetries)
@@ -338,7 +364,7 @@ flows["${sha1}"] = {
               dockeringGuiceCassandra.success()
 
               sh "docker run --detach=true --name=${containers.jamesCassandra} --hostname ${hostname} --expose=143 --publish-all=true ${jamesLinks} ${images.jamesCassandra}"
-              
+
               echo 'Waiting for James server to be deployed'
               try {
                   waitForCommandSuccess("docker exec ${containers.jamesCassandra} ${jamesCliWithOptions} listusers", maxRetries)
@@ -367,7 +393,7 @@ flows["${sha1}"] = {
               sh "cd dockerfiles/run/guice/jpa; docker cp ${containers.jamesCompile}:${libPathJPA} destination"
               sh "cd dockerfiles/run/guice/jpa; docker cp ${containers.jamesCompile}:${cliJarPathJPA} destination"
               sh "cd dockerfiles/run/guice/jpa; docker cp ${containers.jamesCompile}:${clilibPathJPA} destination"
-              
+
               sh "cd dockerfiles/run/guice/jpa; docker build --tag=${images.jamesJPA} ."
 
               dockeringGuiceJPA.success()
@@ -406,7 +432,7 @@ flows["${sha1}"] = {
             dockeringSpringJPA.success()
 
             sh "docker run --detach=true --name=${containers.jamesJava6} --hostname ${hostname} --expose=143 --publish-all=true ${images.jamesJava6}"
-    
+
             echo 'Waiting for James server to be deployed'
             try {
                 waitForCommandSuccess("docker exec ${containers.jamesJava6} ${jamesCliWithOptionsSpring} listusers", maxRetries)
@@ -422,8 +448,21 @@ flows["${sha1}"] = {
 
             echo "Running integration tests on ${buildId}"
             sh "${findImapPortJava6} && docker run ${verbose} --name=${containers.integrationJava6} --entrypoint=\"/root/integration_tests.sh\" ${useMavenCache} --volumes-from=${containers.gitPublish} ${images.jamesCompile} ${integrationArguments}"
-    
+
             testingSpringJPA.success();
+        }
+
+        stage "Building Guice Server with Cassandra/Ldap ${buildId}"
+        node {
+            sh "cd dockerfiles/run/guice/cassandra-ldap; docker cp ${containers.keystore}:${keystorePath} destination/conf"
+            sh "cd dockerfiles/run/guice/cassandra-ldap; docker cp ${containers.jamesCompile}:${jarPathCassandraLdap} destination"
+            sh "cd dockerfiles/run/guice/cassandra-ldap; docker cp ${containers.jamesCompile}:${libPathCassandraLdap} destination"
+            sh "cd dockerfiles/run/guice/cassandra-ldap; docker cp ${containers.jamesCompile}:${cliJarPathCassandra} destination"
+            sh "cd dockerfiles/run/guice/cassandra-ldap; docker cp ${containers.jamesCompile}:${clilibPathCassandra} destination"
+
+            sh "cd dockerfiles/run/guice/cassandra-ldap; docker build --tag=${images.jamesCassandraLdap} ."
+
+            dockeringGuiceCassandraLdap.success()
         }
 
         if (publishToDocker()) {
@@ -440,6 +479,9 @@ flows["${sha1}"] = {
 
                 sh "docker tag -f ${images.jamesJPA} linagora/james-jpa-guice"
                 sh "docker push linagora/james-jpa-guice"
+
+                sh "docker tag -f ${images.jamesCassandraLdap} linagora/james-ldap-project"
+                sh "docker push linagora/james-ldap-project"
 
                 publishing.success();
             }
@@ -470,9 +512,11 @@ flows["${sha1}"] = {
             deleteContainer(containers.elasticSearch)
 
             deleteContainer(containers.jamesCassandra)
+            deleteContainer(containers.jamesCassandraLdap)
             deleteContainer(containers.jamesJPA)
             deleteContainer(containers.jamesJava6)
             deleteImage(images.jamesCassandra)
+            deleteImage(images.jamesCassandraLdap)
             deleteImage(images.jamesJPA)
             deleteImage(images.jamesJava6)
 
