@@ -12,6 +12,7 @@ import org.kohsuke.github.GHRepository
 
 def dockerIp = '62.210.100.33'
 def continuousDeploymentDockerIp = '62.210.101.42'
+def continuousDeploymentConfigurationPath = /root/james/conf
 def hostname = 'james.linagora.com'
 def maxRetries = 120
 def author = extractUsername()
@@ -492,7 +493,7 @@ flows["${sha1}"] = {
                 if (isAlive("james-project")) {
                     sh "docker rm -f james-project"
                 }
-                sh "docker run --hostname linagora.com -p '80:80' -p '25:25' -p '110:110' -p '143:143' -p '465:465' -p '587:587' -p '993:993' -p '8000:8000' --link cassandra:cassandra --link elasticsearch:elasticsearch -d --name james-project -t linagora/james-project"
+                sh "docker run --hostname linagora.com -p '80:80' -p '25:25' -p '110:110' -p '143:143' -p '465:465' -p '587:587' -p '993:993' -p '8000:8000' --link cassandra:cassandra --link elasticsearch:elasticsearch -d --name james-project -v ${continuousDeploymentConfigurationPath}:/root/conf -t linagora/james-project"
                 continuousDeployment.success();
             }
         }
