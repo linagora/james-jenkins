@@ -121,6 +121,8 @@ public class Images implements Serializable {
     def jamesCassandra;
     def jamesCassandraLdap;
     def jamesJPA;
+    def jamesJpaSample;
+    def jamesJpaSampleForTesting;
     def jamesJava6;
     def gitPublish;
 
@@ -130,6 +132,8 @@ public class Images implements Serializable {
         jamesCassandra = 'james-server-cassandra-' + buildId;
         jamesCassandraLdap = 'james-server-cassandra-ldap-' + buildId;
         jamesJPA = 'james-server-jpa-' + buildId;
+        jamesJpaSample = 'james-server-jpa-sample-' + buildId;
+        jamesJpaSampleForTesting = 'james-server-jpa-sample-testing' + buildId;
         jamesJava6 = 'james-server-java-6-' + buildId;
         gitPublish = 'git/publish-' + buildId;
     }
@@ -148,6 +152,7 @@ public class Containers implements Serializable {
     def jamesCassandra;
     def jamesCassandraLdap;
     def jamesJPA;
+    def jamesJpaSampleForTesting;
     def jamesJava6;
     def gitPublish;
 
@@ -162,6 +167,7 @@ public class Containers implements Serializable {
         jamesCassandra = 'james-server-cassandra-' + buildId;
         jamesCassandraLdap = 'james-server-cassandra-ldap-' + buildId;
         jamesJPA = 'james-server-jpa-' + buildId;
+        jamesJpaSampleForTesting = 'james-server-jpa-sample-testing' + buildId;
         jamesJava6 = 'james-server-java-6-' + buildId;
         gitPublish = 'git-publish-' + buildId;
     }
@@ -296,6 +302,8 @@ flows["${sha1}"] = {
     statuses.addPendingStatus(dockeringSpringJPA);
     def dockeringGuiceCassandraLdap = commitStatusFactory.from("Building Guice Cassandra/Ldap");
     statuses.addPendingStatus(dockeringGuiceCassandraLdap);
+    def dockeringGuiceJPASampleTesting = commitStatusFactory.from("Dockering Guice JPA with data provision");
+    statuses.addPendingStatus(dockeringGuiceJPASampleTesting);
 
     def deployingGuiceCassandra = commitStatusFactory.from("Deploying Guice Cassandra");
     statuses.addPendingStatus(deployingGuiceCassandra);
@@ -303,6 +311,8 @@ flows["${sha1}"] = {
     statuses.addPendingStatus(deployingGuiceJPA);
     def deployingSpringJPA = commitStatusFactory.from("Deploying Spring JPA");
     statuses.addPendingStatus(deployingSpringJPA);
+    def deployingGuiceJPASampleTesting = commitStatusFactory.from("Deploying Guice JPA with data provision");
+    statuses.addPendingStatus(deployingGuiceJPASampleTesting);
 
     def testingGuiceCassandra = commitStatusFactory.from("Integrating Guice Cassandra");
     statuses.addPendingStatus(testingGuiceCassandra);
@@ -466,6 +476,28 @@ flows["${sha1}"] = {
             dockeringGuiceCassandraLdap.success()
         }
 
+        stage "Deploying Guice Server with JPA then provision data ${buildId}"
+        node {
+            sh "cd dockerfiles/run/guice/provisioned; cp Dockerfile NewDockerfile; sed -i -- 's,linagora/james-jpa-guice,${images.jamesJPA},g' NewDockerfile"
+
+            sh "cd dockerfiles/run/guice/provisioned; docker build --tag=${images.jamesJpaSampleForTesting} -f NewDockerfile ."
+
+            dockeringGuiceJPASampleTesting.success()
+
+            sh "docker run --detach=true --name=${containers.jamesJpaSampleForTesting} --hostname ${hostname} --expose=143 --publish-all=true ${images.jamesJpaSampleForTesting}"
+
+            echo 'Waiting for James server to be deployed and provision data'
+            try {
+                waitForCommandSuccess("docker exec ${containers.jamesJpaSampleForTesting} ${jamesCliWithOptions} listusers", maxRetries)
+            } catch (Exception e) {
+                sh "docker logs ${containers.jamesJpaSampleForTesting}"
+            }
+
+            sh "cd dockerfiles/run/guice/provisioned; rm NewDockerfile"
+            
+            deployingGuiceJPASampleTesting.success();
+        }
+
         if (publishToDocker()) {
             stage "Publishing to Docker Hub"
             node {
@@ -483,6 +515,11 @@ flows["${sha1}"] = {
 
                 sh "docker tag -f ${images.jamesCassandraLdap} linagora/james-ldap-project"
                 sh "docker push linagora/james-ldap-project"
+
+                sh "cd dockerfiles/run/guice/provisioned; docker build --tag=${images.jamesJpaSample} ."
+
+                sh "docker tag -f ${images.jamesJpaSample} linagora/james-jpa-sample"
+                sh "docker push linagora/james-jpa-sample"
 
                 publishing.success();
             }
@@ -515,10 +552,13 @@ flows["${sha1}"] = {
             deleteContainer(containers.jamesCassandra)
             deleteContainer(containers.jamesCassandraLdap)
             deleteContainer(containers.jamesJPA)
+            deleteContainer(containers.jamesJpaSampleForTesting)
             deleteContainer(containers.jamesJava6)
             deleteImage(images.jamesCassandra)
             deleteImage(images.jamesCassandraLdap)
             deleteImage(images.jamesJPA)
+            deleteImage(images.jamesJpaSample)
+            deleteImage(images.jamesJpaSampleForTesting)
             deleteImage(images.jamesJava6)
 
             deleteContainer(containers.integrationCassandra)
