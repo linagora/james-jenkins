@@ -19,6 +19,12 @@ def author = extractUsername()
 def authorParentURL = "https://github.com/${author}/james-project.git"
 def repoName = extractRepoName()
 
+def dockerImageJamesCassandra = appendVersion("linagora/james-project")
+def dockerImageJamesCassandraLDAP = appendVersion("linagora/james-ldap-project")
+def dockerImageJamesSpringJPA = appendVersion("linagora/james-jpa-spring")
+def dockerImageJamesGuiceJPA = appendVersion("linagora/james-jpa-guice")
+def dockerImageJamesGuiceJPASample = appendVersion("linagora/james-jpa-sample")
+
 // Not given optional parameters are set to null
 def propertyMissing(String name) { null }
 
@@ -28,6 +34,13 @@ public String extractUsername() {
 
 public String extractRepoName() {
     return "${repoURL}".split('/')[4].split('\\.')[0];
+}
+
+public String appendVersion(String dockerImageName) {
+    if (version != null) {
+        return dockerImageName + "-${version}";
+    }
+    return dockerImageName;
 }
 
 public class CommitStatuses implements Serializable {
@@ -504,33 +517,33 @@ flows["${sha1}"] = {
                 def dUser = dockerUser();
                 def dPassword = dockerPassword();
                 sh "docker login -u ${dUser} -p ${dPassword}"
-                sh "docker tag -f ${images.jamesCassandra} linagora/james-project"
-                sh "docker push linagora/james-project"
+                sh "docker tag -f ${images.jamesCassandra} ${dockerImageJamesCassandra}"
+                sh "docker push ${dockerImageJamesCassandra}"
 
-                sh "docker tag -f ${images.jamesJava6} linagora/james-jpa-spring"
-                sh "docker push linagora/james-jpa-spring"
+                sh "docker tag -f ${images.jamesJava6} ${dockerImageJamesSpringJPA}"
+                sh "docker push ${dockerImageJamesSpringJPA}"
 
-                sh "docker tag -f ${images.jamesJPA} linagora/james-jpa-guice"
-                sh "docker push linagora/james-jpa-guice"
+                sh "docker tag -f ${images.jamesJPA} ${dockerImageJamesGuiceJPA}"
+                sh "docker push ${dockerImageJamesGuiceJPA}"
 
-                sh "docker tag -f ${images.jamesCassandraLdap} linagora/james-ldap-project"
-                sh "docker push linagora/james-ldap-project"
+                sh "docker tag -f ${images.jamesCassandraLdap} ${dockerImageJamesCassandraLDAP}"
+                sh "docker push ${dockerImageJamesCassandraLDAP}"
 
                 sh "cd dockerfiles/run/guice/provisioned; docker build --tag=${images.jamesJpaSample} ."
 
-                sh "docker tag -f ${images.jamesJpaSample} linagora/james-jpa-sample"
-                sh "docker push linagora/james-jpa-sample"
+                sh "docker tag -f ${images.jamesJpaSample} ${dockerImageJamesGuiceJPASample}"
+                sh "docker push ${dockerImageJamesGuiceJPASample}"
 
                 publishing.success();
             }
             stage "Continuous Deployment"
             node {
                 setDockerHost(continuousDeploymentDockerIp)
-                sh "docker pull linagora/james-project"
+                sh "docker pull ${dockerImageJamesCassandra}"
                 if (isAlive("james-project")) {
                     sh "docker rm -f james-project"
                 }
-                sh "docker run --hostname linagora.com -p '80:80' -p '25:25' -p '110:110' -p '143:143' -p '465:465' -p '587:587' -p '993:993' -p '8000:8000' --link cassandra:cassandra --link elasticsearch:elasticsearch -d --name james-project -v ${continuousDeploymentConfigurationPath}:/root/conf -t linagora/james-project"
+                sh "docker run --hostname linagora.com -p '80:80' -p '25:25' -p '110:110' -p '143:143' -p '465:465' -p '587:587' -p '993:993' -p '8000:8000' --link cassandra:cassandra --link elasticsearch:elasticsearch -d --name james-project -v ${continuousDeploymentConfigurationPath}:/root/conf -t ${dockerImageJamesCassandra}"
                 continuousDeployment.success();
             }
         }
