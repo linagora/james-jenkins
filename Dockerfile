@@ -32,6 +32,5 @@ COPY workflow-step-api.hpi /usr/share/jenkins/ref/plugins/workflow-step-api.jpi
 COPY workflow-support.hpi /usr/share/jenkins/ref/plugins/workflow-support.jpi
 
 COPY create-dsl-job.groovy /usr/share/jenkins/ref/init.groovy.d/create-dsl-job.groovy
-COPY use-ldap-authentication.groovy  /usr/share/jenkins/ref/init.groovy.d/use-ldap-authentication.groovy
 
 COPY .dockercfg /usr/share/jenkins/ref/.dockercfg
