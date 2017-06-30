@@ -185,11 +185,11 @@ def libPathJPA = '/jpa/destination/james-server-jpa-guice.lib'
 def cliJarPathJPA = '/jpa/destination/james-server-cli.jar'
 def clilibPathJPA = '/jpa/destination/james-server-cli.lib'
 
-def zipPath = '/destination/james-server-app-3.0.0-RC2-SNAPSHOT-app.zip'
+def zipPath = '/destination/james-server-app-3.1.0-SNAPSHOT-app.zip'
 
 def keystorePath = '/keys/keystore'
 def jamesCliWithOptions = 'java -jar /root/james-cli.jar -h 127.0.0.1'
-def jamesCliWithOptionsSpring = '/root/james-server-app-3.0.0-RC2-SNAPSHOT/bin/james-cli.sh -h 127.0.0.1 -p 9999'
+def jamesCliWithOptionsSpring = '/root/james-server-app-3.1.0-SNAPSHOT/bin/james-cli.sh -h 127.0.0.1 -p 9999'
 def useMavenCache = '-v maven-cache-volume:/root/.m2'
 
 def executeCommand (command) {
