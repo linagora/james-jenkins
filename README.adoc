@@ -108,10 +108,14 @@ $docker build -f DockerfileJamesTlsKeyContainer -t keystore .
 $docker run -v /keys --name keystore keystore
 ----
 
+=== Public James images with version to docker hub
+====Edit the predefined parameters by adding new
+version=<james_version>
+
 === Launch Jenkins on the specified branch
 If you change the workflow-job and would like to launch Jenkins build on new branch
 
-====Create new "Workflow" which point to you james-jenkins branch with
+====Create new "Workflow" which point to your james-jenkins branch with
 
 Repositories point to your github repository
 Repositories point to your branch
