@@ -104,7 +104,7 @@ launching james image build. Default value is set to 'james72laBalle').
 Then, run these command to set up this container on nodes that will hosts James servers :
 
 ----
-$docker build -f DockerfileJamesTlsKeyContainer -t keystore .
+$docker build -f DockerFileKeystoreContainer -t keystore .
 $docker run -v /keys --name keystore keystore
 ----
 
