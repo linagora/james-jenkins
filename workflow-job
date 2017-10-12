@@ -10,7 +10,7 @@ import org.kohsuke.github.GHRepository
 // $repoURL parameter : specifies the commiter GitHub repo URL
 // $sha1 parameter : specifies the actual commit
 
-def dockerIp = '62.210.100.33'
+def dockerIp = System.getenv("DOCKER_HOST")
 def continuousDeploymentDockerIp = '62.210.101.42'
 def continuousDeploymentConfigurationPath = '/root/james/conf'
 def hostname = 'james.linagora.com'

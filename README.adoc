@@ -51,6 +51,7 @@ You have to modify the env.file file with the following parameters:
  - __DOCKER_USER__: is the Docker Hub user used to publish the build, see publishing section (ex. myuser) +
 If not given, publishing to Docker Hub will not be enabled.
  - __DOCKER_PASSWORD__: is the password of the Docker Hub user
+ - __DOCKER_HOST__: Ip that the jenkins-docker can reach to connect to the host docker by tls
 
 Then, you can open it in your browser :
 
