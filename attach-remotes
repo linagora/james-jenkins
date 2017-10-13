@@ -1,0 +1,34 @@
+import hudson.model.Node.Mode
+import hudson.slaves.*
+import jenkins.model.Jenkins
+
+
+//Handy debug logging
+Jenkins.instance.nodes.each {
+    println "BEFORE - Agent: $it"
+}
+
+
+
+String[] agentList = ["quigon"]
+
+agentList.each {
+
+    // There is a constructor that also takes a list of properties (env vars) at the end, but haven't needed that yet
+    DumbSlave dumb = new DumbSlave(it,  // Agent name, usually matches the host computer's machine name
+            "remote dockerized worker", // Agent description
+            "/home/jenkins/build/",     // Workspace on the agent's computer
+            "1",                          // Number of executors
+            Mode.EXCLUSIVE,             // "Usage" field, EXCLUSIVE is "only tied to node", NORMAL is "any"
+            "remote",                   // Labels
+            new JNLPLauncher(),         // Launch strategy, JNLP is the Java Web Start setting services use
+            RetentionStrategy.INSTANCE) // Is the "Availability" field and INSTANCE means "Always"
+
+    Jenkins.instance.addNode(dumb)
+    println "Agent '$it' created"
+}
+
+
+Jenkins.instance.nodes.each {
+    println "AFTER - Agent: $it"
+}
