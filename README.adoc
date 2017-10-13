@@ -41,7 +41,7 @@ launching jenkins. Then :
 
 ----
 $docker build --tag myjenkins .
-$docker run -p 8080:8080 --volumes-from keys --env-file=./env.file --name jks myjenkins
+$docker run -p 50000:50000 -p 8080:8080 --volumes-from keys --env-file=./env.file --name jks myjenkins
 ----
 
 You have to modify the env.file file with the following parameters:
