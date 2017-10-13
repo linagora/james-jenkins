@@ -10,6 +10,7 @@ import org.kohsuke.github.GHRepository
 // $repoURL parameter : specifies the commiter GitHub repo URL
 // $sha1 parameter : specifies the actual commit
 
+def dockerIp = '62.210.101.42'
 def continuousDeploymentDockerIp = '62.210.101.42'
 def continuousDeploymentConfigurationPath = '/root/james/conf'
 def hostname = 'james.linagora.com'
@@ -52,19 +53,19 @@ public class CommitStatuses implements Serializable {
 
 public class CommitStatusFactory implements Serializable {
 
-  private final String repoName;
-  private final String sha1;
-  private int stepNumber = 0;
+    private final String repoName;
+    private final String sha1;
+    private int stepNumber = 0;
 
-  public CommitStatusFactory(String repoName, String sha1) {
-    this.repoName = repoName;
-    this.sha1 = sha1;
-  }
+    public CommitStatusFactory(String repoName, String sha1) {
+        this.repoName = repoName;
+        this.sha1 = sha1;
+    }
 
-  public CommitStatus from(String description) {
-    stepNumber++;
-    return new CommitStatus(repoName, sha1, description, stepNumber);
-  }
+    public CommitStatus from(String description) {
+        stepNumber++;
+        return new CommitStatus(repoName, sha1, description, stepNumber);
+    }
 }
 
 public class CommitStatus implements Serializable {
@@ -106,7 +107,7 @@ public class CommitStatus implements Serializable {
     private void createCommitStatus(String state) {
         this.state = state;
         if (sha1 != null) {
-                getRepository(repoName).createCommitStatus(sha1, GHCommitState.valueOf(state), null, description, context);
+            getRepository(repoName).createCommitStatus(sha1, GHCommitState.valueOf(state), null, description, context);
         }
     }
 }
@@ -188,12 +189,12 @@ def jamesCliWithOptionsSpring = '/root/james-server-app-3.1.0-SNAPSHOT/bin/james
 def useMavenCache = '-v maven-cache-volume:/root/.m2'
 
 def executeCommand (command) {
-   try {
-       sh "${command}"
-   } catch (Exception e) {
-       echo "Error executing ${command} : ${e.getMessage()}"
-       e.printStackTrace();
-   }
+    try {
+        sh "${command}"
+    } catch (Exception e) {
+        echo "Error executing ${command} : ${e.getMessage()}"
+        e.printStackTrace();
+    }
 }
 def deleteImage = { name -> executeCommand("docker rmi --force=true ${name}") }
 def deleteContainer = { name -> executeCommand("docker rm --force=true --volumes=true ${name}") }
@@ -210,6 +211,13 @@ def waitForCommandSuccess (command, maxRetries) {
             sh "sleep 1"
         }
     }
+}
+
+env.DOCKER_CERT_PATH = '/keys/'
+env.DOCKER_TLS_VERIFY = 'TRUE'
+
+def setDockerHost(dockerHost) {
+    env.DOCKER_HOST = "tcp://${dockerHost}:2376"
 }
 
 def flows = [:]
@@ -238,12 +246,12 @@ def publishToDocker = {
 }
 
 def isAlive(dockerContainer) {
-   try {
-       sh "docker inspect -f '{{.State.Status}}' ${dockerContainer} | grep running"
-       return true;
-   } catch (Exception e) {
-       return false;
-   }
+    try {
+        sh "docker inspect -f '{{.State.Status}}' ${dockerContainer} | grep running"
+        return true;
+    } catch (Exception e) {
+        return false;
+    }
 }
 
 def provisionDataForIntegrationTest(dockerContainer, jamesCliCmd) {
@@ -252,7 +260,7 @@ def provisionDataForIntegrationTest(dockerContainer, jamesCliCmd) {
 }
 
 def findImapPortCmd(dockerContainer) {
-  return "export JAMES_PORT=`docker inspect -f '{{(index (index .NetworkSettings.Ports \"143/tcp\") 0).HostPort}}' ${dockerContainer}`"
+    return "export JAMES_PORT=`docker inspect -f '{{(index (index .NetworkSettings.Ports \"143/tcp\") 0).HostPort}}' ${dockerContainer}`"
 }
 
 flows["${sha1}"] = {
@@ -267,8 +275,8 @@ flows["${sha1}"] = {
     def findImapPortSpring = findImapPortCmd("${containers.jamesSpring}")
 
     def sha1ToBuild = sha1OrBranch()
-    def integrationArguments = "localhost \$JAMES_PORT ${sha1ToBuild}"
     def verbose = "-a stdout -a stderr"
+    def dockerEnv = "--env=DOCKER_HOST=${env.DOCKER_HOST} --env=DOCKER_CERT_PATH=${env.DOCKER_CERT_PATH} --env=DOCKER_TLS_VERIFY=TRUE"
 
     def statuses = new CommitStatuses();
     def commitStatusFactory = new CommitStatusFactory(repoName, sha1);
@@ -315,25 +323,25 @@ flows["${sha1}"] = {
         statuses.addPendingStatus(continuousDeployment);
     }
 
-    try {
-        stage "Perform Merge"
-        node {
+    stage "Build"
+    node('remote') {
+        def integrationArguments = "${dockerIp} \$JAMES_PORT ${sha1ToBuild}"
+        try {
+
+            setDockerHost(dockerIp)
+            //perform merge
             git url: authorParentURL, branch: branch
             sh "docker build --tag ${images.gitPublish} -f dockerfiles/merge/Dockerfile ."
             sh "docker run ${verbose} -t --name ${containers.gitPublish} -v /origin ${images.gitPublish} ${sha1ToBuild} ${mergeBranch}"
             merging.success();
-        }
-        stage "Building ${buildId}"
-        node {
+
+            //Building with tests
             sh "docker build --tag=${images.jamesCompile} dockerfiles/compilation/java-8"
-            sh "cd dockerfiles/; docker run ${verbose} --tmpfs=/tmp:rw,exec,size=1g --tmpfs=/james-project:rw,size=4g --name=${containers.jamesCompile} ${useMavenCache} -e DOCKER_CONTAINER=${containers.jamesCompile} --volumes-from=${containers.keys} --volumes-from=${containers.gitPublish} --volume=/jpa/destination --volume=/cassandra/destination --volume=/spring/destination -v /var/run/docker.sock:/var/run/docker.sock ${images.jamesCompile} ${mergeBranch}"
+            sh "cd dockerfiles/; docker run ${verbose} --tmpfs=/tmp:rw,exec,size=1g --tmpfs=/james-project:rw,size=4g --name=${containers.jamesCompile} ${dockerEnv} ${useMavenCache} -e DOCKER_CONTAINER=${containers.jamesCompile} --volumes-from=${containers.keys} --volumes-from=${containers.gitPublish} --volume=/jpa/destination --volume=/cassandra/destination --volume=/spring/destination ${images.jamesCompile} ${mergeBranch}"
 
             buildingJava8.success();
-        }
 
-        
-        stage "Deploying Guice Server with Cassandra ${buildId}"
-        node {
+            //Deploying Guice Server with Cassandra
             sh "cd dockerfiles/run/guice/cassandra; docker cp ${containers.keystore}:${keystorePath} destination/conf"
             sh "cd dockerfiles/run/guice/cassandra; docker cp ${containers.jamesCompile}:${jarPathCassandra} destination"
             sh "cd dockerfiles/run/guice/cassandra; docker cp ${containers.jamesCompile}:${libPathCassandra} destination"
@@ -361,20 +369,15 @@ flows["${sha1}"] = {
             }
 
             deployingGuiceCassandra.success();
-        }
-        stage "Configuring James Server on Cassandra"
-        node {
+            //Configuring James Server on Cassandra
             provisionDataForIntegrationTest("${containers.jamesCassandra}", "${jamesCliWithOptions}")
 
             echo "Running integration tests on Cassandra on ${buildId}"
             sh "${findImapPortCassandra} && docker run ${verbose} --name=${containers.integrationCassandra} --entrypoint=\"/root/integration_tests.sh\" ${useMavenCache} --volumes-from=${containers.gitPublish} ${images.jamesCompile} ${integrationArguments}"
 
             testingGuiceCassandra.success();
-        }
-        
-        
-        stage "Deploying Guice Server with JPA ${buildId}"
-        node {
+
+            //Deploying Guice Server with JPA
             sh "cd dockerfiles/run/guice/jpa; docker cp ${containers.keystore}:${keystorePath} destination/conf"
             sh "cd dockerfiles/run/guice/jpa; docker cp ${containers.jamesCompile}:${jarPathJPA} destination"
             sh "cd dockerfiles/run/guice/jpa; docker cp ${containers.jamesCompile}:${libPathJPA} destination"
@@ -395,19 +398,16 @@ flows["${sha1}"] = {
             }
 
             deployingGuiceJPA.success();
-        }
-        stage "Configuring James Server on JPA"
-        node {
+
+            //Configuring James Server on JPA
             provisionDataForIntegrationTest("${containers.jamesJPA}", "${jamesCliWithOptions}")
 
             echo "Running integration tests on JPA on ${buildId}"
             sh "${findImapPortJPA} && docker run ${verbose} --name=${containers.integrationJPA} --entrypoint=\"/root/integration_tests.sh\" ${useMavenCache} --volumes-from=${containers.gitPublish} ${images.jamesCompile} ${integrationArguments}"
 
             testingGuiceJPA.success();
-        }
 
-        stage "Deploying James Server with Spring + JPA ${buildId}"
-        node {
+            //Deploying James Server with Spring + JPA
             sh "cd dockerfiles/run/spring; docker cp ${containers.keystore}:${keystorePath} destination/conf"
             sh "cd dockerfiles/run/spring; docker cp ${containers.jamesCompile}:${zipPath} destination"
 
@@ -424,9 +424,8 @@ flows["${sha1}"] = {
                 sh "docker logs ${containers.jamesSpring}"
             }
             deployingSpringJPA.success();
-        }
-        stage "Configuring James Server on Spring + JPA"
-        node {
+
+            //Configuring James Server on Spring + JPA
             sh "docker exec ${containers.jamesSpring} ${jamesCliWithOptionsSpring} adddomain domain"
             sh "docker exec ${containers.jamesSpring} ${jamesCliWithOptionsSpring} adduser imapuser@domain password"
 
@@ -434,10 +433,8 @@ flows["${sha1}"] = {
             sh "${findImapPortSpring} && docker run ${verbose} --name=${containers.integrationSpring} --entrypoint=\"/root/integration_tests.sh\" ${useMavenCache} --volumes-from=${containers.gitPublish} ${images.jamesCompile} ${integrationArguments}"
 
             testingSpringJPA.success();
-        }
 
-        stage "Building Guice Server with Cassandra/Ldap ${buildId}"
-        node {
+            //"Building Guice Server with Cassandra/Ldap
             sh "cd dockerfiles/run/guice/cassandra-ldap; docker cp ${containers.keystore}:${keystorePath} destination/conf"
             sh "cd dockerfiles/run/guice/cassandra-ldap; docker cp ${containers.jamesCompile}:${jarPathCassandraLdap} destination"
             sh "cd dockerfiles/run/guice/cassandra-ldap; docker cp ${containers.jamesCompile}:${libPathCassandraLdap} destination"
@@ -447,10 +444,8 @@ flows["${sha1}"] = {
             sh "cd dockerfiles/run/guice/cassandra-ldap; docker build --tag=${images.jamesCassandraLdap} ."
 
             dockeringGuiceCassandraLdap.success()
-        }
 
-        stage "Deploying Guice Server with JPA then provision data ${buildId}"
-        node {
+            //Deploying Guice Server with JPA then provision data
             sh "cd dockerfiles/run/guice/provisioned; cp Dockerfile NewDockerfile; sed -i -- 's,linagora/james-jpa-guice,${images.jamesJPA},g' NewDockerfile"
 
             sh "cd dockerfiles/run/guice/provisioned; docker build --tag=${images.jamesJpaSampleForTesting} -f NewDockerfile ."
@@ -467,57 +462,55 @@ flows["${sha1}"] = {
             }
 
             sh "cd dockerfiles/run/guice/provisioned; rm NewDockerfile"
-            
-            deployingGuiceJPASampleTesting.success();
-        }
 
-        if (publishToDocker()) {
-            stage "Publishing to Docker Hub"
-            node {
+            deployingGuiceJPASampleTesting.success();
+
+            if (publishToDocker()) {
+
+                //Publishing to Docker Hub
                 def dUser = dockerUser();
                 def dPassword = dockerPassword();
                 sh "docker login -u ${dUser} -p ${dPassword}"
-                sh "docker tag -f ${images.jamesCassandra} linagora/james-project"
+                sh "docker tag ${images.jamesCassandra} linagora/james-project"
                 sh "docker push linagora/james-project"
 
-                sh "docker tag -f ${images.jamesSpring} linagora/james-jpa-spring"
+                sh "docker tag ${images.jamesSpring} linagora/james-jpa-spring"
                 sh "docker push linagora/james-jpa-spring"
 
-                sh "docker tag -f ${images.jamesJPA} linagora/james-jpa-guice"
+                sh "docker tag ${images.jamesJPA} linagora/james-jpa-guice"
                 sh "docker push linagora/james-jpa-guice"
 
-                sh "docker tag -f ${images.jamesCassandraLdap} linagora/james-ldap-project"
+                sh "docker tag ${images.jamesCassandraLdap} linagora/james-ldap-project"
                 sh "docker push linagora/james-ldap-project"
 
-                sh "cd dockerfiles/run/guice/provisioned; docker build --tag=${images.jamesJpaSample} ."
+                try {
+                    sh "cd dockerfiles/run/guice/provisioned; docker build --tag=${images.jamesJpaSample} ."
 
-                sh "docker tag -f ${images.jamesJpaSample} linagora/james-jpa-sample"
-                sh "docker push linagora/james-jpa-sample"
+                    sh "docker tag ${images.jamesJpaSample} linagora/james-jpa-sample"
+                    sh "docker push linagora/james-jpa-sample"
+                } finally {
+                    deleteImage(images.jamesJpaSample)
+                }
 
                 publishing.success();
-            }
-            stage "Continuous Deployment"
-            node {
-	    	try {
-	    	env.DOCKER_CERT_PATH = '/keys/'
-    		env.DOCKER_TLS_VERIFY = 'TRUE'
-		env.DOCKER_HOST = "tcp://${continuousDeploymentDockerIp}:2376"
-                sh "docker pull linagora/james-project"
-                if (isAlive("james-project")) {
-                    sh "docker rm -f james-project"
+
+                //"Continuous Deployment"
+                try {
+                    setDockerHost(continuousDeploymentDockerIp)
+                    sh "docker pull linagora/james-project"
+                    if (isAlive("james-project")) {
+                        sh "docker rm -f james-project"
+                    }
+                    sh "docker run --hostname linagora.com -p '80:80' -p '25:25' -p '110:110' -p '143:143' -p '465:465' -p '587:587' -p '993:993' -p '8000:8000' --link cassandra:cassandra --link elasticsearch:elasticsearch -d --name james-project -v ${continuousDeploymentConfigurationPath}:/root/conf -t linagora/james-project"
+                    continuousDeployment.success();
+                } finally {
+                    setDockerHost(dockerIp)
                 }
-                sh "docker run --hostname linagora.com -p '80:80' -p '25:25' -p '110:110' -p '143:143' -p '465:465' -p '587:587' -p '993:993' -p '8000:8000' --link cassandra:cassandra --link elasticsearch:elasticsearch -d --name james-project -v ${continuousDeploymentConfigurationPath}:/root/conf -t linagora/james-project"
-                continuousDeployment.success();
-		} finally {
-		  env.DOCKER_CERT_PATH = null
-		  env.DOCKER_TLS_VERIFY = null
-		  env.DOCKER_HOST = null
-		}
+
             }
-        }
-    } finally {
-        stage "Cleaning ${buildId}"
-        node {
+        } finally {
+            //Cleaning everything
+            setDockerHost(dockerIp)
             deleteContainer(containers.gitPublish)
             deleteImage(images.gitPublish)
 
@@ -535,7 +528,6 @@ flows["${sha1}"] = {
             deleteImage(images.jamesCassandra)
             deleteImage(images.jamesCassandraLdap)
             deleteImage(images.jamesJPA)
-            deleteImage(images.jamesJpaSample)
             deleteImage(images.jamesJpaSampleForTesting)
             deleteImage(images.jamesSpring)
 
@@ -543,9 +535,9 @@ flows["${sha1}"] = {
             deleteContainer(containers.integrationJPA)
             deleteContainer(containers.integrationSpring)
 
-            statuses.failPendingStatuses();
         }
     }
+    statuses.failPendingStatuses();
 }
 
 parallel flows

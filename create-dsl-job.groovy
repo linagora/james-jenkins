@@ -35,7 +35,7 @@ jenkins.add(workflowJob, workflowJob.name);
 
 jobName = "create-dsl-job";
 gitTrigger = new SCMTrigger("* * * * *");
-dslBuilder = new ExecuteDslScripts(scriptLocation=new ExecuteDslScripts.ScriptLocation(value = "false", targets="build-pr-from-github,build-github-branch", scriptText=""), ignoreExisting=false, removedJobAction=RemovedJobAction.DISABLE);
+dslBuilder = new ExecuteDslScripts(scriptLocation=new ExecuteDslScripts.ScriptLocation(value = "false", targets="build-pr-from-github,build-github-branch,attach-remotes", scriptText=""), ignoreExisting=false, removedJobAction=RemovedJobAction.DISABLE);
 dslProject = new hudson.model.FreeStyleProject(jenkins, jobName);
 dslProject.scm = new GitSCM("https://github.com/linagora/james-jenkins.git");
 dslProject.scm.branches = [new BranchSpec("*/master")];
@@ -62,4 +62,3 @@ ghprbDescriptor.save();
 ghprbPushDescriptor = Jenkins.instance.getExtensionList(com.cloudbees.jenkins.GitHubPushTrigger.DescriptorImpl.class)[0];
 ghprbPushDescriptor.manageHook = true;
 ghprbPushDescriptor.save();
-
