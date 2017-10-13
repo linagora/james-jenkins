@@ -264,6 +264,7 @@ def findImapPortCmd(dockerContainer) {
 }
 
 flows["${sha1}"] = {
+    setDockerHost(dockerIp)
     def buildId = "${branch.toLowerCase()}-${UUID.randomUUID()}"
     def mergeBranch = "MERGE-${buildId}"
     def images = new Images(buildId);
