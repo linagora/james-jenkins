@@ -10,7 +10,6 @@ import org.kohsuke.github.GHRepository
 // $repoURL parameter : specifies the commiter GitHub repo URL
 // $sha1 parameter : specifies the actual commit
 
-def dockerIp = '62.210.101.42'
 def continuousDeploymentDockerIp = '62.210.101.42'
 def continuousDeploymentConfigurationPath = '/root/james/conf'
 def hostname = 'james.linagora.com'
@@ -213,11 +212,16 @@ def waitForCommandSuccess (command, maxRetries) {
     }
 }
 
-env.DOCKER_CERT_PATH = '/keys/'
-env.DOCKER_TLS_VERIFY = 'TRUE'
-
 def setDockerHost(dockerHost) {
     env.DOCKER_HOST = "tcp://${dockerHost}:2376"
+    env.DOCKER_CERT_PATH = '/keys/'
+    env.DOCKER_TLS_VERIFY = 'TRUE'
+}
+
+def unsetDockerHost() {
+    env.DOCKER_HOST = ""
+    env.DOCKER_CERT_PATH = ""
+    env.DOCKER_TLS_VERIFY = 'FALSE'
 }
 
 def flows = [:]
@@ -264,6 +268,7 @@ def findImapPortCmd(dockerContainer) {
 }
 
 flows["${sha1}"] = {
+
     def buildId = "${branch.toLowerCase()}-${UUID.randomUUID()}"
     def mergeBranch = "MERGE-${buildId}"
     def images = new Images(buildId);
@@ -276,7 +281,6 @@ flows["${sha1}"] = {
 
     def sha1ToBuild = sha1OrBranch()
     def verbose = "-a stdout -a stderr"
-    def dockerEnv = "--env=DOCKER_HOST=${env.DOCKER_HOST} --env=DOCKER_CERT_PATH=${env.DOCKER_CERT_PATH} --env=DOCKER_TLS_VERIFY=TRUE"
 
     def statuses = new CommitStatuses();
     def commitStatusFactory = new CommitStatusFactory(repoName, sha1);
@@ -327,8 +331,6 @@ flows["${sha1}"] = {
     node('remote') {
         def integrationArguments = "${dockerIp} \$JAMES_PORT ${sha1ToBuild}"
         try {
-
-            setDockerHost(dockerIp)
             //perform merge
             git url: authorParentURL, branch: branch
             sh "docker build --tag ${images.gitPublish} -f dockerfiles/merge/Dockerfile ."
@@ -337,7 +339,7 @@ flows["${sha1}"] = {
 
             //Building with tests
             sh "docker build --tag=${images.jamesCompile} dockerfiles/compilation/java-8"
-            sh "cd dockerfiles/; docker run ${verbose} --tmpfs=/tmp:rw,exec,size=1g --tmpfs=/james-project:rw,size=4g --name=${containers.jamesCompile} ${dockerEnv} ${useMavenCache} -e DOCKER_CONTAINER=${containers.jamesCompile} --volumes-from=${containers.keys} --volumes-from=${containers.gitPublish} --volume=/jpa/destination --volume=/cassandra/destination --volume=/spring/destination ${images.jamesCompile} ${mergeBranch}"
+            sh "cd dockerfiles/; docker run ${verbose} --tmpfs=/tmp:rw,exec,size=1g --tmpfs=/james-project:rw,size=4g -v /var/run/docker.sock:/var/run/docker.sock --name=${containers.jamesCompile} ${useMavenCache} -e DOCKER_CONTAINER=${containers.jamesCompile} --volumes-from=${containers.keys} --volumes-from=${containers.gitPublish} --volume=/jpa/destination --volume=/cassandra/destination --volume=/spring/destination ${images.jamesCompile} ${mergeBranch}"
 
             buildingJava8.success();
 
@@ -504,13 +506,12 @@ flows["${sha1}"] = {
                     sh "docker run --hostname linagora.com -p '80:80' -p '25:25' -p '110:110' -p '143:143' -p '465:465' -p '587:587' -p '993:993' -p '8000:8000' --link cassandra:cassandra --link elasticsearch:elasticsearch -d --name james-project -v ${continuousDeploymentConfigurationPath}:/root/conf -t linagora/james-project"
                     continuousDeployment.success();
                 } finally {
-                    setDockerHost(dockerIp)
+                    unsetDockerHost()
                 }
 
             }
         } finally {
             //Cleaning everything
-            setDockerHost(dockerIp)
             deleteContainer(containers.gitPublish)
             deleteImage(images.gitPublish)
 
