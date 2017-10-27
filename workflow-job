@@ -329,213 +329,215 @@ flows["${sha1}"] = {
 
     stage "Build"
     node('remote') {
-        def integrationArguments = "${dockerIp} \$JAMES_PORT ${sha1ToBuild}"
-        try {
-            //perform merge
-            git url: authorParentURL, branch: branch
-            sh "docker build --tag ${images.gitPublish} -f dockerfiles/merge/Dockerfile ."
-            sh "docker run ${verbose} -t --name ${containers.gitPublish} -v /origin ${images.gitPublish} ${sha1ToBuild} ${mergeBranch}"
-            merging.success();
+        ws("/home/jenkins/build/workspace/${env.BUILD_NUMBER}") {
+		def integrationArguments = "${dockerIp} \$JAMES_PORT ${sha1ToBuild}"
+		try {
+		    //perform merge
+		    git url: authorParentURL, branch: branch
+		    sh "docker build --tag ${images.gitPublish} -f dockerfiles/merge/Dockerfile ."
+		    sh "docker run ${verbose} -t --name ${containers.gitPublish} -v /origin ${images.gitPublish} ${sha1ToBuild} ${mergeBranch}"
+		    merging.success();
 
-            //Building with tests
-            sh "docker build --tag=${images.jamesCompile} dockerfiles/compilation/java-8"
-            sh "cd dockerfiles/; docker run ${verbose} --tmpfs=/tmp:rw,exec,size=1g --tmpfs=/james-project:rw,size=4g -v /var/run/docker.sock:/var/run/docker.sock --name=${containers.jamesCompile} ${useMavenCache} -e DOCKER_CONTAINER=${containers.jamesCompile} --volumes-from=${containers.keys} --volumes-from=${containers.gitPublish} --volume=/jpa/destination --volume=/cassandra/destination --volume=/spring/destination ${images.jamesCompile} ${mergeBranch}"
+		    //Building with tests
+		    sh "docker build --tag=${images.jamesCompile} dockerfiles/compilation/java-8"
+		    sh "cd dockerfiles/; docker run ${verbose} --tmpfs=/tmp:rw,exec,size=1g --tmpfs=/james-project:rw,size=4g -v /var/run/docker.sock:/var/run/docker.sock --name=${containers.jamesCompile} ${useMavenCache} -e DOCKER_CONTAINER=${containers.jamesCompile} --volumes-from=${containers.keys} --volumes-from=${containers.gitPublish} --volume=/jpa/destination --volume=/cassandra/destination --volume=/spring/destination ${images.jamesCompile} ${mergeBranch}"
 
-            buildingJava8.success();
+		    buildingJava8.success();
 
-            //Deploying Guice Server with Cassandra
-            sh "cd dockerfiles/run/guice/cassandra; docker cp ${containers.keystore}:${keystorePath} destination/conf"
-            sh "cd dockerfiles/run/guice/cassandra; docker cp ${containers.jamesCompile}:${jarPathCassandra} destination"
-            sh "cd dockerfiles/run/guice/cassandra; docker cp ${containers.jamesCompile}:${libPathCassandra} destination"
-            sh "cd dockerfiles/run/guice/cassandra; docker cp ${containers.jamesCompile}:${cliJarPathCassandra} destination"
-            sh "cd dockerfiles/run/guice/cassandra; docker cp ${containers.jamesCompile}:${clilibPathCassandra} destination"
+		    //Deploying Guice Server with Cassandra
+		    sh "cd dockerfiles/run/guice/cassandra; docker cp ${containers.keystore}:${keystorePath} destination/conf"
+		    sh "cd dockerfiles/run/guice/cassandra; docker cp ${containers.jamesCompile}:${jarPathCassandra} destination"
+		    sh "cd dockerfiles/run/guice/cassandra; docker cp ${containers.jamesCompile}:${libPathCassandra} destination"
+		    sh "cd dockerfiles/run/guice/cassandra; docker cp ${containers.jamesCompile}:${cliJarPathCassandra} destination"
+		    sh "cd dockerfiles/run/guice/cassandra; docker cp ${containers.jamesCompile}:${clilibPathCassandra} destination"
 
-            sh "docker run --detach=true --name=${containers.cassandra} ${images.cassandra}"
-            try {
-                waitForCommandSuccess("docker exec ${containers.cassandra} cqlsh -e 'describe columnfamily system.local;'", maxRetries)
-            } catch (Exception e) {
-                sh "docker logs ${containers.cassandra}"
-            }
-            sh "docker run --detach=true --name=${containers.elasticSearch} ${images.elasticSearch}"
-            sh "cd dockerfiles/run/guice/cassandra; docker build --tag=${images.jamesCassandra} ."
+		    sh "docker run --detach=true --name=${containers.cassandra} ${images.cassandra}"
+		    try {
+			waitForCommandSuccess("docker exec ${containers.cassandra} cqlsh -e 'describe columnfamily system.local;'", maxRetries)
+		    } catch (Exception e) {
+			sh "docker logs ${containers.cassandra}"
+		    }
+		    sh "docker run --detach=true --name=${containers.elasticSearch} ${images.elasticSearch}"
+		    sh "cd dockerfiles/run/guice/cassandra; docker build --tag=${images.jamesCassandra} ."
 
-            dockeringGuiceCassandra.success()
+		    dockeringGuiceCassandra.success()
 
-            sh "docker run --detach=true --name=${containers.jamesCassandra} --hostname ${hostname} --expose=143 --publish-all=true ${jamesLinks} ${images.jamesCassandra}"
+		    sh "docker run --detach=true --name=${containers.jamesCassandra} --hostname ${hostname} --expose=143 --publish-all=true ${jamesLinks} ${images.jamesCassandra}"
 
-            echo 'Waiting for James server to be deployed'
-            try {
-                waitForCommandSuccess("docker exec ${containers.jamesCassandra} ${jamesCliWithOptions} listusers", maxRetries)
-            } catch (Exception e) {
-                sh "docker logs ${containers.jamesCassandra}"
-            }
+		    echo 'Waiting for James server to be deployed'
+		    try {
+			waitForCommandSuccess("docker exec ${containers.jamesCassandra} ${jamesCliWithOptions} listusers", maxRetries)
+		    } catch (Exception e) {
+			sh "docker logs ${containers.jamesCassandra}"
+		    }
 
-            deployingGuiceCassandra.success();
-            //Configuring James Server on Cassandra
-            provisionDataForIntegrationTest("${containers.jamesCassandra}", "${jamesCliWithOptions}")
+		    deployingGuiceCassandra.success();
+		    //Configuring James Server on Cassandra
+		    provisionDataForIntegrationTest("${containers.jamesCassandra}", "${jamesCliWithOptions}")
 
-            echo "Running integration tests on Cassandra on ${buildId}"
-            sh "${findImapPortCassandra} && docker run ${verbose} --name=${containers.integrationCassandra} --entrypoint=\"/root/integration_tests.sh\" ${useMavenCache} --volumes-from=${containers.gitPublish} ${images.jamesCompile} ${integrationArguments}"
+		    echo "Running integration tests on Cassandra on ${buildId}"
+		    sh "${findImapPortCassandra} && docker run ${verbose} --name=${containers.integrationCassandra} --entrypoint=\"/root/integration_tests.sh\" ${useMavenCache} --volumes-from=${containers.gitPublish} ${images.jamesCompile} ${integrationArguments}"
 
-            testingGuiceCassandra.success();
+		    testingGuiceCassandra.success();
 
-            //Deploying Guice Server with JPA
-            sh "cd dockerfiles/run/guice/jpa; docker cp ${containers.keystore}:${keystorePath} destination/conf"
-            sh "cd dockerfiles/run/guice/jpa; docker cp ${containers.jamesCompile}:${jarPathJPA} destination"
-            sh "cd dockerfiles/run/guice/jpa; docker cp ${containers.jamesCompile}:${libPathJPA} destination"
-            sh "cd dockerfiles/run/guice/jpa; docker cp ${containers.jamesCompile}:${cliJarPathJPA} destination"
-            sh "cd dockerfiles/run/guice/jpa; docker cp ${containers.jamesCompile}:${clilibPathJPA} destination"
+		    //Deploying Guice Server with JPA
+		    sh "cd dockerfiles/run/guice/jpa; docker cp ${containers.keystore}:${keystorePath} destination/conf"
+		    sh "cd dockerfiles/run/guice/jpa; docker cp ${containers.jamesCompile}:${jarPathJPA} destination"
+		    sh "cd dockerfiles/run/guice/jpa; docker cp ${containers.jamesCompile}:${libPathJPA} destination"
+		    sh "cd dockerfiles/run/guice/jpa; docker cp ${containers.jamesCompile}:${cliJarPathJPA} destination"
+		    sh "cd dockerfiles/run/guice/jpa; docker cp ${containers.jamesCompile}:${clilibPathJPA} destination"
 
-            sh "cd dockerfiles/run/guice/jpa; docker build --tag=${images.jamesJPA} ."
+		    sh "cd dockerfiles/run/guice/jpa; docker build --tag=${images.jamesJPA} ."
 
-            dockeringGuiceJPA.success()
+		    dockeringGuiceJPA.success()
 
-            sh "docker run --detach=true --name=${containers.jamesJPA} --hostname ${hostname} --expose=143 --publish-all=true ${images.jamesJPA}"
+		    sh "docker run --detach=true --name=${containers.jamesJPA} --hostname ${hostname} --expose=143 --publish-all=true ${images.jamesJPA}"
 
-            echo 'Waiting for James server to be deployed'
-            try {
-                waitForCommandSuccess("docker exec ${containers.jamesJPA} ${jamesCliWithOptions} listusers", maxRetries)
-            } catch (Exception e) {
-                sh "docker logs ${containers.jamesJPA}"
-            }
+		    echo 'Waiting for James server to be deployed'
+		    try {
+			waitForCommandSuccess("docker exec ${containers.jamesJPA} ${jamesCliWithOptions} listusers", maxRetries)
+		    } catch (Exception e) {
+			sh "docker logs ${containers.jamesJPA}"
+		    }
 
-            deployingGuiceJPA.success();
+		    deployingGuiceJPA.success();
 
-            //Configuring James Server on JPA
-            provisionDataForIntegrationTest("${containers.jamesJPA}", "${jamesCliWithOptions}")
+		    //Configuring James Server on JPA
+		    provisionDataForIntegrationTest("${containers.jamesJPA}", "${jamesCliWithOptions}")
 
-            echo "Running integration tests on JPA on ${buildId}"
-            sh "${findImapPortJPA} && docker run ${verbose} --name=${containers.integrationJPA} --entrypoint=\"/root/integration_tests.sh\" ${useMavenCache} --volumes-from=${containers.gitPublish} ${images.jamesCompile} ${integrationArguments}"
+		    echo "Running integration tests on JPA on ${buildId}"
+		    sh "${findImapPortJPA} && docker run ${verbose} --name=${containers.integrationJPA} --entrypoint=\"/root/integration_tests.sh\" ${useMavenCache} --volumes-from=${containers.gitPublish} ${images.jamesCompile} ${integrationArguments}"
 
-            testingGuiceJPA.success();
+		    testingGuiceJPA.success();
 
-            //Deploying James Server with Spring + JPA
-            sh "cd dockerfiles/run/spring; docker cp ${containers.keystore}:${keystorePath} destination/conf"
-            sh "cd dockerfiles/run/spring; docker cp ${containers.jamesCompile}:${zipPath} destination"
+		    //Deploying James Server with Spring + JPA
+		    sh "cd dockerfiles/run/spring; docker cp ${containers.keystore}:${keystorePath} destination/conf"
+		    sh "cd dockerfiles/run/spring; docker cp ${containers.jamesCompile}:${zipPath} destination"
 
-            sh "cd dockerfiles/run/spring; docker build --tag=${images.jamesSpring} ."
+		    sh "cd dockerfiles/run/spring; docker build --tag=${images.jamesSpring} ."
 
-            dockeringSpringJPA.success()
+		    dockeringSpringJPA.success()
 
-            sh "docker run --detach=true --name=${containers.jamesSpring} --hostname ${hostname} --expose=143 --publish-all=true ${images.jamesSpring}"
+		    sh "docker run --detach=true --name=${containers.jamesSpring} --hostname ${hostname} --expose=143 --publish-all=true ${images.jamesSpring}"
 
-            echo 'Waiting for James server to be deployed'
-            try {
-                waitForCommandSuccess("docker exec ${containers.jamesSpring} ${jamesCliWithOptionsSpring} listusers", maxRetries)
-            } catch (Exception e) {
-                sh "docker logs ${containers.jamesSpring}"
-            }
-            deployingSpringJPA.success();
+		    echo 'Waiting for James server to be deployed'
+		    try {
+			waitForCommandSuccess("docker exec ${containers.jamesSpring} ${jamesCliWithOptionsSpring} listusers", maxRetries)
+		    } catch (Exception e) {
+			sh "docker logs ${containers.jamesSpring}"
+		    }
+		    deployingSpringJPA.success();
 
-            //Configuring James Server on Spring + JPA
-            sh "docker exec ${containers.jamesSpring} ${jamesCliWithOptionsSpring} adddomain domain"
-            sh "docker exec ${containers.jamesSpring} ${jamesCliWithOptionsSpring} adduser imapuser@domain password"
+		    //Configuring James Server on Spring + JPA
+		    sh "docker exec ${containers.jamesSpring} ${jamesCliWithOptionsSpring} adddomain domain"
+		    sh "docker exec ${containers.jamesSpring} ${jamesCliWithOptionsSpring} adduser imapuser@domain password"
 
-            echo "Running integration tests on ${buildId}"
-            sh "${findImapPortSpring} && docker run ${verbose} --name=${containers.integrationSpring} --entrypoint=\"/root/integration_tests.sh\" ${useMavenCache} --volumes-from=${containers.gitPublish} ${images.jamesCompile} ${integrationArguments}"
+		    echo "Running integration tests on ${buildId}"
+		    sh "${findImapPortSpring} && docker run ${verbose} --name=${containers.integrationSpring} --entrypoint=\"/root/integration_tests.sh\" ${useMavenCache} --volumes-from=${containers.gitPublish} ${images.jamesCompile} ${integrationArguments}"
 
-            testingSpringJPA.success();
+		    testingSpringJPA.success();
 
-            //"Building Guice Server with Cassandra/Ldap
-            sh "cd dockerfiles/run/guice/cassandra-ldap; docker cp ${containers.keystore}:${keystorePath} destination/conf"
-            sh "cd dockerfiles/run/guice/cassandra-ldap; docker cp ${containers.jamesCompile}:${jarPathCassandraLdap} destination"
-            sh "cd dockerfiles/run/guice/cassandra-ldap; docker cp ${containers.jamesCompile}:${libPathCassandraLdap} destination"
-            sh "cd dockerfiles/run/guice/cassandra-ldap; docker cp ${containers.jamesCompile}:${cliJarPathCassandra} destination"
-            sh "cd dockerfiles/run/guice/cassandra-ldap; docker cp ${containers.jamesCompile}:${clilibPathCassandra} destination"
+		    //"Building Guice Server with Cassandra/Ldap
+		    sh "cd dockerfiles/run/guice/cassandra-ldap; docker cp ${containers.keystore}:${keystorePath} destination/conf"
+		    sh "cd dockerfiles/run/guice/cassandra-ldap; docker cp ${containers.jamesCompile}:${jarPathCassandraLdap} destination"
+		    sh "cd dockerfiles/run/guice/cassandra-ldap; docker cp ${containers.jamesCompile}:${libPathCassandraLdap} destination"
+		    sh "cd dockerfiles/run/guice/cassandra-ldap; docker cp ${containers.jamesCompile}:${cliJarPathCassandra} destination"
+		    sh "cd dockerfiles/run/guice/cassandra-ldap; docker cp ${containers.jamesCompile}:${clilibPathCassandra} destination"
 
-            sh "cd dockerfiles/run/guice/cassandra-ldap; docker build --tag=${images.jamesCassandraLdap} ."
+		    sh "cd dockerfiles/run/guice/cassandra-ldap; docker build --tag=${images.jamesCassandraLdap} ."
 
-            dockeringGuiceCassandraLdap.success()
+		    dockeringGuiceCassandraLdap.success()
 
-            //Deploying Guice Server with JPA then provision data
-            sh "cd dockerfiles/run/guice/provisioned; cp Dockerfile NewDockerfile; sed -i -- 's,linagora/james-jpa-guice,${images.jamesJPA},g' NewDockerfile"
+		    //Deploying Guice Server with JPA then provision data
+		    sh "cd dockerfiles/run/guice/provisioned; cp Dockerfile NewDockerfile; sed -i -- 's,linagora/james-jpa-guice,${images.jamesJPA},g' NewDockerfile"
 
-            sh "cd dockerfiles/run/guice/provisioned; docker build --tag=${images.jamesJpaSampleForTesting} -f NewDockerfile ."
+		    sh "cd dockerfiles/run/guice/provisioned; docker build --tag=${images.jamesJpaSampleForTesting} -f NewDockerfile ."
 
-            dockeringGuiceJPASampleTesting.success()
+		    dockeringGuiceJPASampleTesting.success()
 
-            sh "docker run --detach=true --name=${containers.jamesJpaSampleForTesting} --hostname ${hostname} --expose=143 --publish-all=true ${images.jamesJpaSampleForTesting}"
+		    sh "docker run --detach=true --name=${containers.jamesJpaSampleForTesting} --hostname ${hostname} --expose=143 --publish-all=true ${images.jamesJpaSampleForTesting}"
 
-            echo 'Waiting for James server to be deployed and provision data'
-            try {
-                waitForCommandSuccess("docker exec ${containers.jamesJpaSampleForTesting} ${jamesCliWithOptions} listusers", maxRetries)
-            } catch (Exception e) {
-                sh "docker logs ${containers.jamesJpaSampleForTesting}"
-            }
+		    echo 'Waiting for James server to be deployed and provision data'
+		    try {
+			waitForCommandSuccess("docker exec ${containers.jamesJpaSampleForTesting} ${jamesCliWithOptions} listusers", maxRetries)
+		    } catch (Exception e) {
+			sh "docker logs ${containers.jamesJpaSampleForTesting}"
+		    }
 
-            sh "cd dockerfiles/run/guice/provisioned; rm NewDockerfile"
+		    sh "cd dockerfiles/run/guice/provisioned; rm NewDockerfile"
 
-            deployingGuiceJPASampleTesting.success();
+		    deployingGuiceJPASampleTesting.success();
 
-            if (publishToDocker()) {
+		    if (publishToDocker()) {
 
-                //Publishing to Docker Hub
-                def dUser = dockerUser();
-                def dPassword = dockerPassword();
-                sh "docker login -u ${dUser} -p ${dPassword}"
-                sh "docker tag ${images.jamesCassandra} linagora/james-project"
-                sh "docker push linagora/james-project"
+			//Publishing to Docker Hub
+			def dUser = dockerUser();
+			def dPassword = dockerPassword();
+			sh "docker login -u ${dUser} -p ${dPassword}"
+			sh "docker tag ${images.jamesCassandra} linagora/james-project"
+			sh "docker push linagora/james-project"
 
-                sh "docker tag ${images.jamesSpring} linagora/james-jpa-spring"
-                sh "docker push linagora/james-jpa-spring"
+			sh "docker tag ${images.jamesSpring} linagora/james-jpa-spring"
+			sh "docker push linagora/james-jpa-spring"
 
-                sh "docker tag ${images.jamesJPA} linagora/james-jpa-guice"
-                sh "docker push linagora/james-jpa-guice"
+			sh "docker tag ${images.jamesJPA} linagora/james-jpa-guice"
+			sh "docker push linagora/james-jpa-guice"
 
-                sh "docker tag ${images.jamesCassandraLdap} linagora/james-ldap-project"
-                sh "docker push linagora/james-ldap-project"
+			sh "docker tag ${images.jamesCassandraLdap} linagora/james-ldap-project"
+			sh "docker push linagora/james-ldap-project"
 
-                try {
-                    sh "cd dockerfiles/run/guice/provisioned; docker build --tag=${images.jamesJpaSample} ."
+			try {
+			    sh "cd dockerfiles/run/guice/provisioned; docker build --tag=${images.jamesJpaSample} ."
 
-                    sh "docker tag ${images.jamesJpaSample} linagora/james-jpa-sample"
-                    sh "docker push linagora/james-jpa-sample"
-                } finally {
-                    deleteImage(images.jamesJpaSample)
-                }
+			    sh "docker tag ${images.jamesJpaSample} linagora/james-jpa-sample"
+			    sh "docker push linagora/james-jpa-sample"
+			} finally {
+			    deleteImage(images.jamesJpaSample)
+			}
 
-                publishing.success();
+			publishing.success();
 
-                //"Continuous Deployment"
-                try {
-                    setDockerHost(continuousDeploymentDockerIp)
-                    sh "docker pull linagora/james-project"
-                    if (isAlive("james-project")) {
-                        sh "docker rm -f james-project"
-                    }
-                    sh "docker run --hostname linagora.com -p '80:80' -p '25:25' -p '110:110' -p '143:143' -p '465:465' -p '587:587' -p '993:993' -p '8000:8000' --link cassandra:cassandra --link elasticsearch:elasticsearch -d --name james-project -v ${continuousDeploymentConfigurationPath}:/root/conf -t linagora/james-project"
-                    continuousDeployment.success();
-                } finally {
-                    unsetDockerHost()
-                }
+			//"Continuous Deployment"
+			try {
+			    setDockerHost(continuousDeploymentDockerIp)
+			    sh "docker pull linagora/james-project"
+			    if (isAlive("james-project")) {
+				sh "docker rm -f james-project"
+			    }
+			    sh "docker run --hostname linagora.com -p '80:80' -p '25:25' -p '110:110' -p '143:143' -p '465:465' -p '587:587' -p '993:993' -p '8000:8000' --link cassandra:cassandra --link elasticsearch:elasticsearch -d --name james-project -v ${continuousDeploymentConfigurationPath}:/root/conf -t linagora/james-project"
+			    continuousDeployment.success();
+			} finally {
+			    unsetDockerHost()
+			}
 
-            }
-        } finally {
-            //Cleaning everything
-            deleteContainer(containers.gitPublish)
-            deleteImage(images.gitPublish)
+		    }
+		} finally {
+		    //Cleaning everything
+		    deleteContainer(containers.gitPublish)
+		    deleteImage(images.gitPublish)
 
-            deleteContainer(containers.jamesCompile)
-            deleteImage(images.jamesCompile)
+		    deleteContainer(containers.jamesCompile)
+		    deleteImage(images.jamesCompile)
 
-            deleteContainer(containers.cassandra)
-            deleteContainer(containers.elasticSearch)
+		    deleteContainer(containers.cassandra)
+		    deleteContainer(containers.elasticSearch)
 
-            deleteContainer(containers.jamesCassandra)
-            deleteContainer(containers.jamesCassandraLdap)
-            deleteContainer(containers.jamesJPA)
-            deleteContainer(containers.jamesJpaSampleForTesting)
-            deleteContainer(containers.jamesSpring)
-            deleteImage(images.jamesCassandra)
-            deleteImage(images.jamesCassandraLdap)
-            deleteImage(images.jamesJPA)
-            deleteImage(images.jamesJpaSampleForTesting)
-            deleteImage(images.jamesSpring)
+		    deleteContainer(containers.jamesCassandra)
+		    deleteContainer(containers.jamesCassandraLdap)
+		    deleteContainer(containers.jamesJPA)
+		    deleteContainer(containers.jamesJpaSampleForTesting)
+		    deleteContainer(containers.jamesSpring)
+		    deleteImage(images.jamesCassandra)
+		    deleteImage(images.jamesCassandraLdap)
+		    deleteImage(images.jamesJPA)
+		    deleteImage(images.jamesJpaSampleForTesting)
+		    deleteImage(images.jamesSpring)
 
-            deleteContainer(containers.integrationCassandra)
-            deleteContainer(containers.integrationJPA)
-            deleteContainer(containers.integrationSpring)
+		    deleteContainer(containers.integrationCassandra)
+		    deleteContainer(containers.integrationJPA)
+		    deleteContainer(containers.integrationSpring)
 
+		}
         }
     }
     statuses.failPendingStatuses();
