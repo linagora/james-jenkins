@@ -60,6 +60,22 @@ or
 $firefox http://JENKINS_URL
 ----
 
+=== Starting a slave
+
+You may need to start one (or several) Jenkins slave.
+
+----
+$docker build -f DockerfileSlave -t jenkins-slave .
+$docker run -d -v /var/run/docker.sock:/var/run/docker.sock --volumes-from=keys --rm --name jenkins-slave jenkins-slave -url <master-url> <secret> <host>
+----
+
+Where:
+
+ - __master-url__: is the URL of your jenkins
+ - __ secret__: is the agent secret
+ - __host__: is the agent name
+
+
 === Publishing to Docker 
 
 This feature is only available when building the *master* branch.

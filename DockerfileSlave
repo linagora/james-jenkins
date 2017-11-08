@@ -1,6 +1,6 @@
 FROM jenkinsci/jnlp-slave:3.10-1
 
-#docker run -d -v /var/run/docker.sock:/var/run/docker.sock --rm --name jenkins-slave jenkins-slave -url <master-url> <secret> <host>
+#docker run -d -v /var/run/docker.sock:/var/run/docker.sock --volumes-from=keys --rm --name jenkins-slave jenkins-slave -url <master-url> <secret> <host>
 
 USER root
 
