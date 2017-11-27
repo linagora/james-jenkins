@@ -10,7 +10,7 @@ Jenkins.instance.nodes.each {
 
 
 
-String[] agentList = ["quigon", "anakin", "yoda", "obiwan"]
+String[] agentList = ["anakin", "yoda", "obiwan"]
 
 agentList.each {
 
