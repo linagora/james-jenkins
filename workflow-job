@@ -10,8 +10,6 @@ import org.kohsuke.github.GHRepository
 // $repoURL parameter : specifies the commiter GitHub repo URL
 // $sha1 parameter : specifies the actual commit
 
-def continuousDeploymentDockerIp = '62.210.101.42'
-def continuousDeploymentConfigurationPath = '/root/james/conf'
 def hostname = 'james.linagora.com'
 def maxRetries = 120
 def author = extractUsername()
@@ -318,13 +316,10 @@ flows["${sha1}"] = {
     statuses.addPendingStatus(testingSpringJPA);
 
     def publishing;
-    def continuousDeployment;
     def deployAndValidatingBuilder = [:]
     if (publishToDocker()) {
         publishing = commitStatusFactory.from("Publishing");
         statuses.addPendingStatus(publishing);
-        continuousDeployment = commitStatusFactory.from("Continuous Deployment");
-        statuses.addPendingStatus(continuousDeployment);
     }
 
     stage "Build"
