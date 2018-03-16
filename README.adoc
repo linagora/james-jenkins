@@ -50,6 +50,8 @@ You have to modify the env.file file with the following parameters:
  - __GITHUB_TOKEN__: is the token used to access the GitHub API (https://github.com/settings/tokens)
  - __DOCKER_USER__: is the Docker Hub user used to publish the build, see publishing section (ex. myuser) +
 If not given, publishing to Docker Hub will not be enabled.
+ - __GITLAB_TOKEN__: is the GitLab token used to trigger a job generating packages on packages.linagora.com.Docker. +
+If not given, packaging will not be enabled.
  - __DOCKER_PASSWORD__: is the password of the Docker Hub user
 
 Then, you can open it in your browser :

@@ -243,8 +243,16 @@ def dockerPassword = {
     return System.getenv("DOCKER_PASSWORD");
 }
 
+def gitlabToken = {
+    return System.getenv("GITLAB_TOKEN");
+}
+
 def publishToDocker = {
     return isMaster() && dockerUser() != null;
+}
+
+def packagageOnGitlab = {
+    return isMaster() && gitlabToken() != null;
 }
 
 def isAlive(dockerContainer) {
@@ -320,6 +328,11 @@ flows["${sha1}"] = {
     if (publishToDocker()) {
         publishing = commitStatusFactory.from("Publishing");
         statuses.addPendingStatus(publishing);
+    }
+    def packagingTrigger;
+    if (packagageOnGitlab()) {
+        packagingTrigger = commitStatusFactory.from("Triggering packaging");
+        statuses.addPendingStatus(packagingTrigger);
     }
 
     stage "Build"
@@ -493,6 +506,12 @@ flows["${sha1}"] = {
 			publishing.success();
 
 		    }
+
+                    if (packagageOnGitlab) {
+                        def gitlabToken = gitlabToken();
+                        sh "curl -X POST -Ftoken=${gitlabToken} -F'ref=master' -F'variables[REPO_NAME]=oncommit' -F'variables[SOURCE_REPO]=https://github.com/linagora/james-project' https://ci.linagora.com/api/v4/projects/803/trigger/pipeline
+                        packagingTrigger.success();
+                    }
 		} finally {
 		    //Cleaning everything
 		    deleteContainer(containers.gitPublish)
