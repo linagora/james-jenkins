@@ -10,8 +10,6 @@ import org.kohsuke.github.GHRepository
 // $repoURL parameter : specifies the commiter GitHub repo URL
 // $sha1 parameter : specifies the actual commit
 
-def continuousDeploymentDockerIp = '62.210.101.42'
-def continuousDeploymentConfigurationPath = '/root/james/conf'
 def hostname = 'james.linagora.com'
 def maxRetries = 120
 def author = extractUsername()
@@ -318,13 +316,10 @@ flows["${sha1}"] = {
     statuses.addPendingStatus(testingSpringJPA);
 
     def publishing;
-    def continuousDeployment;
     def deployAndValidatingBuilder = [:]
     if (publishToDocker()) {
         publishing = commitStatusFactory.from("Publishing");
         statuses.addPendingStatus(publishing);
-        continuousDeployment = commitStatusFactory.from("Continuous Deployment");
-        statuses.addPendingStatus(continuousDeployment);
     }
 
     stage "Build"
@@ -496,19 +491,6 @@ flows["${sha1}"] = {
 			}
 
 			publishing.success();
-
-			//"Continuous Deployment"
-			try {
-			    setDockerHost(continuousDeploymentDockerIp)
-			    sh "docker pull linagora/james-project"
-			    if (isAlive("james-project")) {
-				sh "docker rm -f james-project"
-			    }
-			    sh "docker run --hostname linagora.com -p '80:80' -p '25:25' -p '110:110' -p '143:143' -p '465:465' -p '587:587' -p '993:993' -p '8000:8000' --link cassandra:cassandra --link elasticsearch:elasticsearch -d --name james-project -v ${continuousDeploymentConfigurationPath}:/root/conf -t linagora/james-project"
-			    continuousDeployment.success();
-			} finally {
-			    unsetDockerHost()
-			}
 
 		    }
 		} finally {
