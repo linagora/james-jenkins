@@ -509,7 +509,8 @@ flows["${sha1}"] = {
 
                     if (packagageOnGitlab) {
                         def gitlabToken = gitlabToken();
-                        sh "curl -X POST -Ftoken=${gitlabToken} -F'ref=master' -F'variables[REPO_NAME]=oncommit' -F'variables[SOURCE_REPO]=https://github.com/linagora/james-project' https://ci.linagora.com/api/v4/projects/803/trigger/pipeline
+                        sh "curl -X POST -Ftoken=${gitlabToken} -F'ref=master' -F'variables[REPO_NAME]=oncommit' -F'variables[SOURCE_REPO]=https://github.com/linagora/james-project' 
+https://ci.linagora.com/api/v4/projects/803/trigger/pipeline"
                         packagingTrigger.success();
                     }
 		} finally {
