@@ -507,7 +507,7 @@ flows["${sha1}"] = {
 
 		    }
 
-                    if (packagageOnGitlab) {
+                    if (packagageOnGitlab()) {
                         def gToken = gitlabToken();
                         sh """curl
 			   |-X POST
