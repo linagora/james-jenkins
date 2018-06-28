@@ -30,6 +30,7 @@ COPY workflow-job.hpi /usr/share/jenkins/ref/plugins/workflow-job.jpi
 COPY workflow-scm-step.hpi /usr/share/jenkins/ref/plugins/workflow-scm-step.jpi
 COPY workflow-step-api.hpi /usr/share/jenkins/ref/plugins/workflow-step-api.jpi
 COPY workflow-support.hpi /usr/share/jenkins/ref/plugins/workflow-support.jpi
+COPY github-api.hpi /usr/share/jenkins/ref/plugins/github-api.jpi
 
 COPY create-dsl-job.groovy /usr/share/jenkins/ref/init.groovy.d/create-dsl-job.groovy
 COPY basic-authentication.groovy /usr/share/jenkins/ref/init.groovy.d/basic-authentication.groovy
