@@ -10,6 +10,7 @@ import org.kohsuke.github.GHRepository
 // $repoURL parameter : specifies the commiter GitHub repo URL
 // $sha1 parameter : specifies the actual commit
 
+def dockerIp = '127.0.0.1'
 def hostname = 'james.linagora.com'
 def maxRetries = 120
 def author = extractUsername()
