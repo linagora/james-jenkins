@@ -10,6 +10,7 @@ import org.kohsuke.github.GHRepository
 // $repoURL parameter : specifies the commiter GitHub repo URL
 // $sha1 parameter : specifies the actual commit
 
+def dockerIp = '127.0.0.1'
 def hostname = 'james.linagora.com'
 def maxRetries = 120
 def author = extractUsername()
@@ -269,8 +270,8 @@ def provisionDataForIntegrationTest(dockerContainer, jamesCliCmd) {
     sh "docker exec ${dockerContainer} ${jamesCliCmd} adduser imapuser@domain password"
 }
 
-def containerIp(dockerContainer) {
-    return "`docker inspect -f '{{(index .NetworkSettings.Networks.platform_default.IPAddress)}}' ${dockerContainer}`" 
+def findImapPortCmd(dockerContainer) {
+    return "export JAMES_PORT=`docker inspect -f '{{(index (index .NetworkSettings.Ports \"143/tcp\") 0).HostPort}}' ${dockerContainer}`"
 }
 
 flows["${sha1}"] = {
@@ -280,6 +281,10 @@ flows["${sha1}"] = {
     def images = new Images(buildId);
     def containers = new Containers(buildId);
     def jamesLinks = "--link ${containers.cassandra}:cassandra --link ${containers.elasticSearch}:elasticsearch"
+
+    def findImapPortCassandra = findImapPortCmd("${containers.jamesCassandra}")
+    def findImapPortJPA = findImapPortCmd("${containers.jamesJPA}")
+    def findImapPortSpring = findImapPortCmd("${containers.jamesSpring}")
 
     def sha1ToBuild = sha1OrBranch()
     def verbose = "-a stdout -a stderr"
@@ -334,6 +339,7 @@ flows["${sha1}"] = {
     stage "Build"
     node('remote') {
         ws("/home/jenkins/build/workspace/${env.BUILD_NUMBER}") {
+		def integrationArguments = "${dockerIp} \$JAMES_PORT ${sha1ToBuild}"
 		try {
 		    //perform merge
 		    git url: authorParentURL, branch: branch
@@ -379,8 +385,7 @@ flows["${sha1}"] = {
 		    provisionDataForIntegrationTest("${containers.jamesCassandra}", "${jamesCliWithOptions}")
 
 		    echo "Running integration tests on Cassandra on ${buildId}"
-		    def jamesCassandraIp = containerIp("${containers.jamesCassandra}")
-		    sh "docker run ${verbose} --name=${containers.integrationCassandra} --entrypoint=\"/root/integration_tests.sh\" ${useMavenCache} --volumes-from=${containers.gitPublish} ${jamesCassandraIp} 143 ${sha1ToBuild}"
+		    sh "${findImapPortCassandra} && docker run ${verbose} --name=${containers.integrationCassandra} --entrypoint=\"/root/integration_tests.sh\" ${useMavenCache} --volumes-from=${containers.gitPublish} ${images.jamesCompile} ${integrationArguments}"
 
 		    testingGuiceCassandra.success();
 
@@ -410,8 +415,7 @@ flows["${sha1}"] = {
 		    provisionDataForIntegrationTest("${containers.jamesJPA}", "${jamesCliWithOptions}")
 
 		    echo "Running integration tests on JPA on ${buildId}"
-		    def jamesJPAIp = containerIp("${containers.jamesJPA}")
-		    sh "docker run ${verbose} --name=${containers.integrationJPA} --entrypoint=\"/root/integration_tests.sh\" ${useMavenCache} --volumes-from=${containers.gitPublish} ${jamesJPAIp} 143 ${sha1ToBuild}"
+		    sh "${findImapPortJPA} && docker run ${verbose} --name=${containers.integrationJPA} --entrypoint=\"/root/integration_tests.sh\" ${useMavenCache} --volumes-from=${containers.gitPublish} ${images.jamesCompile} ${integrationArguments}"
 
 		    testingGuiceJPA.success();
 
@@ -438,8 +442,7 @@ flows["${sha1}"] = {
 		    sh "docker exec ${containers.jamesSpring} ${jamesCliWithOptionsSpring} adduser imapuser@domain password"
 
 		    echo "Running integration tests on ${buildId}"
-		    def jamesSpringIp = containerIp("${containers.jamesSpring}")
-		    sh "docker run ${verbose} --name=${containers.integrationSpring} --entrypoint=\"/root/integration_tests.sh\" ${useMavenCache} --volumes-from=${containers.gitPublish} ${images.jamesCompile} ${jamesSpringIp} 143 ${sha1ToBuild}"
+		    sh "${findImapPortSpring} && docker run ${verbose} --name=${containers.integrationSpring} --entrypoint=\"/root/integration_tests.sh\" ${useMavenCache} --volumes-from=${containers.gitPublish} ${images.jamesCompile} ${integrationArguments}"
 
 		    testingSpringJPA.success();
 
