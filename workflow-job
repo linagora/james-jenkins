@@ -6,9 +6,10 @@ import org.kohsuke.github.GHCommitState
 import org.kohsuke.github.GHRepository
 
 // This script must be called with
-// $branch parameter : branch to build specified (used by git workflow-plugin command)
-// $repoURL parameter : specifies the commiter GitHub repo URL
-// $sha1 parameter : specifies the actual commit
+// $branch parameter: branch to build specified (used by git workflow-plugin command)
+// $repoURL parameter: specifies the commiter GitHub repo URL
+// $sha1 parameter: specifies the actual commit
+// $version parameter: specifies the James version of the branch to build (only available when building a branch)
 
 def hostname = 'james.linagora.com'
 def maxRetries = 120
@@ -178,12 +179,19 @@ def libPathJPA = '/jpa/destination/james-server-jpa-guice.lib'
 def cliJarPathJPA = '/jpa/destination/james-server-cli.jar'
 def clilibPathJPA = '/jpa/destination/james-server-cli.lib'
 
-def zipPath = '/spring/destination/james-server-app-3.2.0-SNAPSHOT-app.zip'
-
+def jamesVersion = jamesVersion()
+def zipPath = "/spring/destination/james-server-app-${jamesVersion}-app.zip"
 def keystorePath = '/keys/keystore'
 def jamesCliWithOptions = 'java -jar /root/james-cli.jar -h 127.0.0.1'
-def jamesCliWithOptionsSpring = '/root/james-server-app-3.2.0-SNAPSHOT/bin/james-cli.sh -h 127.0.0.1 -p 9999'
+def jamesCliWithOptionsSpring = "/root/james-server-app-${jamesVersion}/bin/james-cli.sh -h 127.0.0.1 -p 9999"
 def useMavenCache = '-v maven-cache-volume:/root/.m2'
+
+private String jamesVersion() {
+    if (version == null) {
+        return "3.2.0-SNAPSHOT";
+    }
+    return "${version}";
+}
 
 def executeCommand (command) {
     try {

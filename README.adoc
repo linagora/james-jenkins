@@ -145,3 +145,4 @@ Script Path	point to groovy script that you want to run
 repoURL=<yours_repository>
 branch=<yours_branch>
 sha1=<your_last_commit_id_at_branch> 
+version=<the_James_version_of_this_branch>
