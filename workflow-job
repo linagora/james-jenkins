@@ -355,7 +355,7 @@ flows["${sha1}"] = {
 		    //Building with tests
 		    sh "docker build --tag=${images.jamesCompile} dockerfiles/compilation/java-8"
 		    sh "cd dockerfiles/; docker run ${verbose} --tmpfs=/tmp:rw,exec,size=1g --tmpfs=/james-project:rw,size=4g -v /var/run/docker.sock:/var/run/docker.sock --name=${containers.jamesCompile} ${useMavenCache} -e DOCKER_CONTAINER=${containers.jamesCompile} --volumes-from=${containers.keys} --volumes-from=${containers.gitPublish} --env 'MVN_ADDITIONAL_ARG_LINE=-T 1C' ${images.jamesCompile} --skipTests ${mergeBranch}"
-            buildingJava8.success();
+		    buildingJava8.success();
 
 		    sh "cd dockerfiles/; docker run ${verbose} --tmpfs=/tmp:rw,exec,size=1g --tmpfs=/james-project:rw,size=4g -v /var/run/docker.sock:/var/run/docker.sock --name=${containers.jamesCompile} ${useMavenCache} -e DOCKER_CONTAINER=${containers.jamesCompile} --volumes-from=${containers.keys} --volumes-from=${containers.gitPublish} --volume=/jpa/destination --volume=/cassandra/destination --volume=/spring/destination ${images.jamesCompile} ${mergeBranch}"
 		    testingJava8.success();
