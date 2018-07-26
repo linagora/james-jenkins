@@ -144,6 +144,7 @@ public class Containers implements Serializable {
     def integrationJPA;
     def integrationSpring;
     def jamesCompile;
+    def jamesTest;
     def jamesCassandra;
     def jamesCassandraLdap;
     def jamesJPA;
@@ -158,6 +159,7 @@ public class Containers implements Serializable {
         integrationJPA = 'integration-jpa-' + buildId;
         integrationSpring = 'integration-spring-' + buildId;
         jamesCompile = 'james-parent-compile-' + buildId;
+        jamesTest = 'james-parent-test-' + buildId;
         jamesCassandra = 'james-server-cassandra-' + buildId;
         jamesCassandraLdap = 'james-server-cassandra-ldap-' + buildId;
         jamesJPA = 'james-server-jpa-' + buildId;
@@ -259,6 +261,23 @@ def publishToDocker = {
     return isMaster() && dockerUser() != null;
 }
 
+def partialBuild = {
+    return !isMaster();
+}
+
+def partialBuildEnvFunction = {
+    if (partialBuild()) {
+        def baseBranchEnv = "--env 'JAMES_PARTIAL_BUILD_BASE_BRANCH=apache/master'"
+        def additionalOptions = "--env 'MVN_ADDITIONAL_ARG_LINE=-Ppartial-build'"
+
+        return "${baseBranchEnv} ${additionalOptions}"
+    } else {
+        return "";
+    }
+}
+
+def partialBuildEnv = partialBuildEnvFunction();
+
 def packagageOnGitlab = {
     return isMaster() && gitlabToken() != null;
 }
@@ -354,18 +373,26 @@ flows["${sha1}"] = {
 
 		    //Building with tests
 		    sh "docker build --tag=${images.jamesCompile} dockerfiles/compilation/java-8"
-		    sh "cd dockerfiles/; docker run ${verbose} --tmpfs=/tmp:rw,exec,size=1g --tmpfs=/james-project:rw,size=4g -v /var/run/docker.sock:/var/run/docker.sock --name=${containers.jamesCompile} ${useMavenCache} -e DOCKER_CONTAINER=${containers.jamesCompile} --volumes-from=${containers.keys} --volumes-from=${containers.gitPublish} --env 'MVN_ADDITIONAL_ARG_LINE=-T 1C' ${images.jamesCompile} --skipTests ${mergeBranch}"
+
+		    def tmpfsOptions = '--tmpfs=/tmp:rw,exec,size=1g --tmpfs=/james-project:rw,size=4g'
+		    def dockerVolume = '-v /var/run/docker.sock:/var/run/docker.sock'
+		    def destinationVolumes = '--volume=/jpa/destination --volume=/cassandra/destination --volume=/spring/destination'
+		    def allVolumes = "${dockerVolume} --volumes-from=${containers.keys} ${useMavenCache} --volumes-from=${containers.gitPublish} ${destinationVolumes}"
+		    def compileNameDefinitions = "--name=${containers.jamesCompile}"
+		    def testNameDefinitions = "--name=${containers.jamesTest}"
+
+		    sh "cd dockerfiles/; docker run ${verbose} ${tmpfsOptions} ${useMavenCache} --volumes-from=${containers.gitPublish} ${compileNameDefinitions} --env 'MVN_ADDITIONAL_ARG_LINE=-T 1C' ${images.jamesCompile} -s ${mergeBranch}"
 		    buildingJava8.success();
 
-		    sh "cd dockerfiles/; docker run ${verbose} --tmpfs=/tmp:rw,exec,size=1g --tmpfs=/james-project:rw,size=4g -v /var/run/docker.sock:/var/run/docker.sock --name=${containers.jamesCompile} ${useMavenCache} -e DOCKER_CONTAINER=${containers.jamesCompile} --volumes-from=${containers.keys} --volumes-from=${containers.gitPublish} --volume=/jpa/destination --volume=/cassandra/destination --volume=/spring/destination ${images.jamesCompile} ${mergeBranch}"
+		    sh "cd dockerfiles/; docker run ${verbose} ${tmpfsOptions} ${allVolumes} ${testNameDefinitions} ${partialBuildEnv} ${images.jamesCompile} ${mergeBranch}"
 		    testingJava8.success();
 
 		    //Deploying Guice Server with Cassandra
 		    sh "cd dockerfiles/run/guice/cassandra; docker cp ${containers.keystore}:${keystorePath} destination/conf"
-		    sh "cd dockerfiles/run/guice/cassandra; docker cp ${containers.jamesCompile}:${jarPathCassandra} destination"
-		    sh "cd dockerfiles/run/guice/cassandra; docker cp ${containers.jamesCompile}:${libPathCassandra} destination"
-		    sh "cd dockerfiles/run/guice/cassandra; docker cp ${containers.jamesCompile}:${cliJarPathCassandra} destination"
-		    sh "cd dockerfiles/run/guice/cassandra; docker cp ${containers.jamesCompile}:${clilibPathCassandra} destination"
+		    sh "cd dockerfiles/run/guice/cassandra; docker cp ${containers.jamesTest}:${jarPathCassandra} destination"
+		    sh "cd dockerfiles/run/guice/cassandra; docker cp ${containers.jamesTest}:${libPathCassandra} destination"
+		    sh "cd dockerfiles/run/guice/cassandra; docker cp ${containers.jamesTest}:${cliJarPathCassandra} destination"
+		    sh "cd dockerfiles/run/guice/cassandra; docker cp ${containers.jamesTest}:${clilibPathCassandra} destination"
 
 		    sh "docker run --detach=true --name=${containers.cassandra} ${images.cassandra}"
 		    try {
@@ -399,10 +426,10 @@ flows["${sha1}"] = {
 
 		    //Deploying Guice Server with JPA
 		    sh "cd dockerfiles/run/guice/jpa; docker cp ${containers.keystore}:${keystorePath} destination/conf"
-		    sh "cd dockerfiles/run/guice/jpa; docker cp ${containers.jamesCompile}:${jarPathJPA} destination"
-		    sh "cd dockerfiles/run/guice/jpa; docker cp ${containers.jamesCompile}:${libPathJPA} destination"
-		    sh "cd dockerfiles/run/guice/jpa; docker cp ${containers.jamesCompile}:${cliJarPathJPA} destination"
-		    sh "cd dockerfiles/run/guice/jpa; docker cp ${containers.jamesCompile}:${clilibPathJPA} destination"
+		    sh "cd dockerfiles/run/guice/jpa; docker cp ${containers.jamesTest}:${jarPathJPA} destination"
+		    sh "cd dockerfiles/run/guice/jpa; docker cp ${containers.jamesTest}:${libPathJPA} destination"
+		    sh "cd dockerfiles/run/guice/jpa; docker cp ${containers.jamesTest}:${cliJarPathJPA} destination"
+		    sh "cd dockerfiles/run/guice/jpa; docker cp ${containers.jamesTest}:${clilibPathJPA} destination"
 
 		    sh "cd dockerfiles/run/guice/jpa; docker build --tag=${images.jamesJPA} ."
 
@@ -430,7 +457,7 @@ flows["${sha1}"] = {
 
 		    //Deploying James Server with Spring + JPA
 		    sh "cd dockerfiles/run/spring; docker cp ${containers.keystore}:${keystorePath} destination/conf"
-		    sh "cd dockerfiles/run/spring; docker cp ${containers.jamesCompile}:${zipPath} destination"
+		    sh "cd dockerfiles/run/spring; docker cp ${containers.jamesTest}:${zipPath} destination"
 
 		    sh "cd dockerfiles/run/spring; docker build --tag=${images.jamesSpring} ."
 
@@ -458,10 +485,10 @@ flows["${sha1}"] = {
 
 		    //"Building Guice Server with Cassandra/Ldap
 		    sh "cd dockerfiles/run/guice/cassandra-ldap; docker cp ${containers.keystore}:${keystorePath} destination/conf"
-		    sh "cd dockerfiles/run/guice/cassandra-ldap; docker cp ${containers.jamesCompile}:${jarPathCassandraLdap} destination"
-		    sh "cd dockerfiles/run/guice/cassandra-ldap; docker cp ${containers.jamesCompile}:${libPathCassandraLdap} destination"
-		    sh "cd dockerfiles/run/guice/cassandra-ldap; docker cp ${containers.jamesCompile}:${cliJarPathCassandra} destination"
-		    sh "cd dockerfiles/run/guice/cassandra-ldap; docker cp ${containers.jamesCompile}:${clilibPathCassandra} destination"
+		    sh "cd dockerfiles/run/guice/cassandra-ldap; docker cp ${containers.jamesTest}:${jarPathCassandraLdap} destination"
+		    sh "cd dockerfiles/run/guice/cassandra-ldap; docker cp ${containers.jamesTest}:${libPathCassandraLdap} destination"
+		    sh "cd dockerfiles/run/guice/cassandra-ldap; docker cp ${containers.jamesTest}:${cliJarPathCassandra} destination"
+		    sh "cd dockerfiles/run/guice/cassandra-ldap; docker cp ${containers.jamesTest}:${clilibPathCassandra} destination"
 
 		    sh "cd dockerfiles/run/guice/cassandra-ldap; docker build --tag=${images.jamesCassandraLdap} ."
 
@@ -535,6 +562,7 @@ flows["${sha1}"] = {
 		    deleteImage(images.gitPublish)
 
 		    deleteContainer(containers.jamesCompile)
+		    deleteContainer(containers.jamesTest)
 		    deleteImage(images.jamesCompile)
 
 		    deleteContainer(containers.cassandra)
