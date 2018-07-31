@@ -388,7 +388,7 @@ flows["${sha1}"] = {
 
 		    echo "Running integration tests on Cassandra on ${buildId}"
 		    def jamesCassandraIp = containerIp("${containers.jamesCassandra}")
-		    sh "docker run ${verbose} --name=${containers.integrationCassandra} --entrypoint=\"/root/integration_tests.sh\" ${useMavenCache} --volumes-from=${containers.gitPublish} ${jamesCassandraIp} 143 ${sha1ToBuild}"
+		    sh "docker run ${verbose} --name=${containers.integrationCassandra} --entrypoint=\"/root/integration_tests.sh\" ${useMavenCache} --volumes-from=${containers.gitPublish} ${images.jamesCompile} ${jamesCassandraIp} 143 ${sha1ToBuild}"
 
 		    testingGuiceCassandra.success();
 
@@ -419,7 +419,7 @@ flows["${sha1}"] = {
 
 		    echo "Running integration tests on JPA on ${buildId}"
 		    def jamesJPAIp = containerIp("${containers.jamesJPA}")
-		    sh "docker run ${verbose} --name=${containers.integrationJPA} --entrypoint=\"/root/integration_tests.sh\" ${useMavenCache} --volumes-from=${containers.gitPublish} ${jamesJPAIp} 143 ${sha1ToBuild}"
+		    sh "docker run ${verbose} --name=${containers.integrationJPA} --entrypoint=\"/root/integration_tests.sh\" ${useMavenCache} --volumes-from=${containers.gitPublish} ${images.jamesCompile} ${jamesJPAIp} 143 ${sha1ToBuild}"
 
 		    testingGuiceJPA.success();
 
@@ -447,7 +447,7 @@ flows["${sha1}"] = {
 
 		    echo "Running integration tests on ${buildId}"
 		    def jamesSpringIp = containerIp("${containers.jamesSpring}")
-		    sh "docker run ${verbose} --name=${containers.integrationSpring} --entrypoint=\"/root/integration_tests.sh\" ${useMavenCache} --volumes-from=${containers.gitPublish} ${images.jamesCompile} ${jamesSpringIp} 143 ${sha1ToBuild}"
+		    sh "docker run ${verbose} --name=${containers.integrationSpring} --entrypoint=\"/root/integration_tests.sh\" ${useMavenCache} --volumes-from=${containers.gitPublish} ${images.jamesCompile} ${images.jamesCompile} ${jamesSpringIp} 143 ${sha1ToBuild}"
 
 		    testingSpringJPA.success();
 
