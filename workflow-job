@@ -447,7 +447,7 @@ flows["${sha1}"] = {
 
 		    echo "Running integration tests on ${buildId}"
 		    def jamesSpringIp = containerIp("${containers.jamesSpring}")
-		    sh "docker run ${verbose} --name=${containers.integrationSpring} --entrypoint=\"/root/integration_tests.sh\" ${useMavenCache} --volumes-from=${containers.gitPublish} ${images.jamesCompile} ${images.jamesCompile} ${jamesSpringIp} 143 ${sha1ToBuild}"
+		    sh "docker run ${verbose} --name=${containers.integrationSpring} --entrypoint=\"/root/integration_tests.sh\" ${useMavenCache} --volumes-from=${containers.gitPublish} ${images.jamesCompile} ${jamesSpringIp} 143 ${sha1ToBuild}"
 
 		    testingSpringJPA.success();
 
