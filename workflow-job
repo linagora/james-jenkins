@@ -267,7 +267,7 @@ def partialBuild = {
 
 def partialBuildEnvFunction = {
     if (partialBuild()) {
-        def baseBranchEnv = "--env 'JAMES_PARTIAL_BUILD_BASE_BRANCH=apache/master'"
+        def baseBranchEnv = "--env 'JAMES_PARTIAL_BUILD_BASE_BRANCH=master'"
         def additionalOptions = "--env 'MVN_ADDITIONAL_ARG_LINE=-Ppartial-build'"
 
         return "${baseBranchEnv} ${additionalOptions}"
