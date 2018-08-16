@@ -183,18 +183,6 @@ def executeCommand (command) {
 def deleteImage = { name -> executeCommand("docker rmi --force=true ${name}") }
 def deleteContainer = { name -> executeCommand("docker rm --force=true --volumes=true ${name}") }
 
-def setDockerHost(dockerHost) {
-    env.DOCKER_HOST = "tcp://${dockerHost}:2376"
-    env.DOCKER_CERT_PATH = '/keys/'
-    env.DOCKER_TLS_VERIFY = 'TRUE'
-}
-
-def unsetDockerHost() {
-    env.DOCKER_HOST = ""
-    env.DOCKER_CERT_PATH = ""
-    env.DOCKER_TLS_VERIFY = 'FALSE'
-}
-
 def flows = [:]
 
 def sha1OrBranch = {
