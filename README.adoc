@@ -37,11 +37,17 @@ $docker run -v /keys --name keys keys
 === Launch Jenkins
 
 To start a jenkins instance, you need to have a key container on the node you are 
-launching jenkins. Then :
+launching jenkins. Then:
 
 ----
 $docker build --tag myjenkins .
 $docker run -p 8080:8080 --volumes-from keys --env-file=./env.file --name jks myjenkins
+----
+
+If you forecast to use slaves with your master, you should also export the 50000 port, so the previous line should be:
+
+----
+$docker run -p 8080:8080 -p 50000:50000 --volumes-from keys --env-file=./env.file --name jks myjenkins
 ----
 
 You have to modify the env.file file with the following parameters:
