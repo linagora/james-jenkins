@@ -14,6 +14,7 @@ REPOSITORIES.each {
                 allowMembersOfWhitelistedOrgsAsAdmin(true)
                 triggerPhrase('test this please')
                 orgWhitelist('linagora')
+                permitAll()
             }
         }
         steps {
