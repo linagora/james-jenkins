@@ -10,6 +10,7 @@ import org.kohsuke.github.GHRepository
 // $repoURL parameter: specifies the commiter GitHub repo URL
 // $sha1 parameter: specifies the actual commit
 // $version parameter: specifies the James version of the branch to build (only available when building a branch)
+// $originalBranch: the branch used for merge (optional)
 
 def hostname = 'james.linagora.com'
 def maxRetries = 120
@@ -368,7 +369,7 @@ flows["${sha1}"] = {
 		    //perform merge
 		    git url: authorParentURL, branch: branch
 		    sh "docker build --tag ${images.gitPublish} -f dockerfiles/merge/Dockerfile ."
-		    sh "docker run ${verbose} -t --name ${containers.gitPublish} -v /origin ${images.gitPublish} ${sha1ToBuild} ${mergeBranch}"
+		    sh "docker run ${verbose} -t --name ${containers.gitPublish} -v /origin ${images.gitPublish} ${sha1ToBuild} ${mergeBranch} ${originalBranch}"
 		    merging.success();
 
 		    //Building with tests
