@@ -246,6 +246,17 @@ def isMaster = {
     return sha1OrBranch() == 'master';
 }
 
+def isBranch = {
+    return sha1 == null;
+}
+
+def tag = {
+    if (isMaster()) {
+        return "latest";
+    }
+    return "${branch}";
+}
+
 def dockerUser = {
     return System.getenv("DOCKER_USER");
 }
@@ -259,7 +270,7 @@ def gitlabToken = {
 }
 
 def publishToDocker = {
-    return isMaster() && dockerUser() != null;
+    return isBranch() && dockerUser() != null;
 }
 
 def partialBuild = {
@@ -520,24 +531,25 @@ flows["${sha1}"] = {
 			//Publishing to Docker Hub
 			def dUser = dockerUser();
 			def dPassword = dockerPassword();
+			def tagName = tag();
 			sh "docker login -u ${dUser} -p ${dPassword}"
-			sh "docker tag ${images.jamesCassandra} linagora/james-project"
-			sh "docker push linagora/james-project"
+			sh "docker tag ${images.jamesCassandra} linagora/james-project:${tagName}"
+			sh "docker push linagora/james-project:${tagName}"
 
-			sh "docker tag ${images.jamesSpring} linagora/james-jpa-spring"
-			sh "docker push linagora/james-jpa-spring"
+			sh "docker tag ${images.jamesSpring} linagora/james-jpa-spring:${tagName}"
+			sh "docker push linagora/james-jpa-spring:${tagName}"
 
-			sh "docker tag ${images.jamesJPA} linagora/james-jpa-guice"
-			sh "docker push linagora/james-jpa-guice"
+			sh "docker tag ${images.jamesJPA} linagora/james-jpa-guice:${tagName}"
+			sh "docker push linagora/james-jpa-guice:${tagName}"
 
-			sh "docker tag ${images.jamesCassandraLdap} linagora/james-ldap-project"
-			sh "docker push linagora/james-ldap-project"
+			sh "docker tag ${images.jamesCassandraLdap} linagora/james-ldap-project:${tagName}"
+			sh "docker push linagora/james-ldap-project:${tagName}"
 
 			try {
 			    sh "cd dockerfiles/run/guice/provisioned; docker build --tag=${images.jamesJpaSample} ."
 
-			    sh "docker tag ${images.jamesJpaSample} linagora/james-jpa-sample"
-			    sh "docker push linagora/james-jpa-sample"
+			    sh "docker tag ${images.jamesJpaSample} linagora/james-jpa-sample:${tagName}"
+			    sh "docker push linagora/james-jpa-sample:${tagName}"
 			} finally {
 			    deleteImage(images.jamesJpaSample)
 			}
