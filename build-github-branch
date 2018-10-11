@@ -5,11 +5,12 @@ class BranchOnRepo {
     String repo
     String branch
     String version
+    String originalBranch = ""
 }
 
 def branchesToBuild = [
     new BranchOnRepo('apache/james-project', 'master', '3.2.0-SNAPSHOT'),
-    new BranchOnRepo('apache/james-project', '3.1.0', '3.1.0')
+    new BranchOnRepo('apache/james-project', '3.1.x', '3.1.0', '3.1.0')
 ]
 
 branchesToBuild.each {
@@ -37,7 +38,7 @@ branchesToBuild.each {
                     [buildStepFailure: 'FAILURE',
                      failure         : 'FAILURE',
                      unstable        : 'UNSTABLE']) {
-                    predefinedProps([repoURL: repository, branch: branchOnRepo.branch, version: branchOnRepo.version])
+                    predefinedProps([repoURL: repository, branch: branchOnRepo.branch, version: branchOnRepo.version, originalBranch: branchOnRepo.originalBranch])
                 }
             }
         }
