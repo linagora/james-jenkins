@@ -531,7 +531,6 @@ flows["${sha1}"] = {
 			//Publishing to Docker Hub
 			def dUser = dockerUser();
 			def dPassword = dockerPassword();
-                        def tag = tag();
 			sh "docker login -u ${dUser} -p ${dPassword}"
 			sh "docker tag ${images.jamesCassandra} linagora/james-project"
 			sh "docker push linagora/james-project:${tag}"
