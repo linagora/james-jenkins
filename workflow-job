@@ -274,7 +274,7 @@ def publishToDocker = {
 }
 
 def partialBuild = {
-    return !isMaster();
+    return !isBranch() && !isMaster();
 }
 
 def partialBuildEnvFunction = {
