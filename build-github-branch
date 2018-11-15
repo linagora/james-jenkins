@@ -9,7 +9,7 @@ class BranchOnRepo {
 }
 
 def branchesToBuild = [
-    new BranchOnRepo('apache/james-project', 'master', '3.2.0-SNAPSHOT'),
+    new BranchOnRepo('apache/james-project', 'master', '3.3.0-SNAPSHOT'),
     new BranchOnRepo('apache/james-project', '3.1.x', '3.1.0', '3.1.0'),
     new BranchOnRepo('linagora/james-project', 'openpaas-1.2.x', '3.2.0-SNAPSHOT', 'openpaas-1.2.0-beta1')
 ]
