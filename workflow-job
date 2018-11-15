@@ -191,7 +191,7 @@ def useMavenCache = '-v maven-cache-volume:/root/.m2'
 
 private String jamesVersion() {
     if (version == null) {
-        return "3.2.0-SNAPSHOT";
+        return "3.3.0-SNAPSHOT";
     }
     return "${version}";
 }
