@@ -189,8 +189,8 @@ def libPathCassandraLdap = '/cassandra/destination/james-server-cassandra-ldap-g
 def cliJarPathCassandra = '/cassandra/destination/james-server-cli.jar'
 def clilibPathCassandra = '/cassandra/destination/james-server-cli.lib'
 
-def jarPathCassandraRabbitMQ = '/cassandra-rabbitmq/destination/james-server-cassandra-guice.jar'
-def libPathCassandraRabbitMQ = '/cassandra-rabbitmq/destination/james-server-cassandra-guice.lib'
+def jarPathCassandraRabbitMQ = '/cassandra-rabbitmq/destination/james-server-cassandra-rabbitmq-guice.jar'
+def libPathCassandraRabbitMQ = '/cassandra-rabbitmq/destination/james-server-cassandra-rabbitmq-guice.lib'
 def cliJarPathCassandraRabbitMQ = '/cassandra-rabbitmq/destination/james-server-cli.jar'
 def clilibPathCassandraRabbitMQ = '/cassandra-rabbitmq/destination/james-server-cli.lib'
 
