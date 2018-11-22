@@ -598,7 +598,7 @@ flows["${sha1}"] = {
             sh "docker login -u ${dUser} -p ${dPassword}"
 
             sh "docker tag ${images.jamesCassandraRabbitMQ} linagora/james-rabbitmq-project:${tagName}"
-            sh "docker push linagora/james-cassandra-rabbitmq-swift:${tagName}"
+            sh "docker push linagora/james-rabbitmq-project:${tagName}"
 
             sh "docker tag ${images.jamesCassandra} linagora/james-project:${tagName}"
             sh "docker push linagora/james-project:${tagName}"
