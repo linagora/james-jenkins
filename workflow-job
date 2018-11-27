@@ -120,6 +120,7 @@ public class Images implements Serializable {
     def jamesCompile;
     def jamesCassandra;
     def jamesCassandraRabbitMQ;
+    def jamesCassandraRabbitMQLdap;
     def jamesCassandraLdap;
     def jamesJPA;
     def jamesJpaSample;
@@ -131,6 +132,7 @@ public class Images implements Serializable {
         jamesCompile = 'james-parent-compile-' + buildId;
         jamesCassandra = 'james-server-cassandra-' + buildId;
         jamesCassandraRabbitMQ = 'james-server-cassandra-rabbitmq-' + buildId;
+        jamesCassandraRabbitMQLdap = 'james-server-cassandra-rabbitmq-ldap-' + buildId;
         jamesCassandraLdap = 'james-server-cassandra-ldap-' + buildId;
         jamesJPA = 'james-server-jpa-' + buildId;
         jamesJpaSample = 'james-server-jpa-sample-' + buildId;
@@ -193,6 +195,11 @@ def jarPathCassandraRabbitMQ = '/cassandra-rabbitmq/destination/james-server-cas
 def libPathCassandraRabbitMQ = '/cassandra-rabbitmq/destination/james-server-cassandra-rabbitmq-guice.lib'
 def cliJarPathCassandraRabbitMQ = '/cassandra-rabbitmq/destination/james-server-cli.jar'
 def clilibPathCassandraRabbitMQ = '/cassandra-rabbitmq/destination/james-server-cli.lib'
+
+def jarPathCassandraRabbitMQLdap = '/cassandra-rabbitmq-ldap/destination/james-server-cassandra-rabbitmq-ldap-guice.jar'
+def libPathCassandraRabbitMQLdap = '/cassandra-rabbitmq-ldap/destination/james-server-cassandra-rabbitmq-ldap-guice.lib'
+def cliJarPathCassandraRabbitMQLdap = '/cassandra-rabbitmq-ldap/destination/james-server-cli.jar'
+def clilibPathCassandraRabbitMQLdap = '/cassandra-rabbitmq-ldap/destination/james-server-cli.lib'
 
 def jarPathJPA = '/jpa/destination/james-server-jpa-guice.jar'
 def libPathJPA = '/jpa/destination/james-server-jpa-guice.lib'
@@ -352,6 +359,8 @@ flows["${sha1}"] = {
     def testingJava8 = commitStatusFactory.from("Testing java 8");
     statuses.addPendingStatus(testingJava8);
 
+    def dockeringGuiceCassandraRabbitMQLdap = commitStatusFactory.from("Dockering Guice Cassandra + RabbitMQ + Swift + Ldap");
+    statuses.addPendingStatus(dockeringGuiceCassandraRabbitMQLdap);
     def dockeringGuiceCassandraRabbitMQ = commitStatusFactory.from("Dockering Guice Cassandra + RabbitMQ + Swift");
     statuses.addPendingStatus(dockeringGuiceCassandraRabbitMQ);
     def dockeringGuiceCassandra = commitStatusFactory.from("Dockering Guice Cassandra");
@@ -422,6 +431,17 @@ flows["${sha1}"] = {
 
             sh "cd dockerfiles/; docker run ${verbose} ${tmpfsOptions} ${allVolumes} ${testNameDefinitions} ${partialBuildEnv} ${images.jamesCompile} ${mergeBranch}"
             testingJava8.success();
+
+            //Dockering Guice Server with Cassandra + RabbitMQ + Swift + Ldap
+            sh "cd dockerfiles/run/guice/cassandra-rabbitmq-ldap; docker cp ${containers.keystore}:${keystorePath} destination/conf"
+            sh "cd dockerfiles/run/guice/cassandra-rabbitmq-ldap; docker cp ${containers.jamesTest}:${jarPathCassandraRabbitMQLdap} destination"
+            sh "cd dockerfiles/run/guice/cassandra-rabbitmq-ldap; docker cp ${containers.jamesTest}:${libPathCassandraRabbitMQLdap} destination"
+            sh "cd dockerfiles/run/guice/cassandra-rabbitmq-ldap; docker cp ${containers.jamesTest}:${cliJarPathCassandraRabbitMQLdap} destination"
+            sh "cd dockerfiles/run/guice/cassandra-rabbitmq-ldap; docker cp ${containers.jamesTest}:${clilibPathCassandraRabbitMQLdap} destination"
+
+            sh "cd dockerfiles/run/guice/cassandra-rabbitmq-ldap; docker build --tag=${images.jamesCassandraRabbitMQLdap} ."
+
+            dockeringGuiceCassandraRabbitMQLdap.success()
 
             //Deploying Guice Server with Cassandra + RabbitMQ + Swift
             sh "cd dockerfiles/run/guice/cassandra-rabbitmq; docker cp ${containers.keystore}:${keystorePath} destination/conf"
@@ -597,6 +617,9 @@ flows["${sha1}"] = {
             def tagName = tag();
             sh "docker login -u ${dUser} -p ${dPassword}"
 
+            sh "docker tag ${images.jamesCassandraRabbitMQLdap} linagora/james-cassandra-rabbitmq-ldap-project:${tagName}"
+            sh "docker push linagora/james-cassandra-rabbitmq-ldap-project:${tagName}"
+
             sh "docker tag ${images.jamesCassandraRabbitMQ} linagora/james-rabbitmq-project:${tagName}"
             sh "docker push linagora/james-rabbitmq-project:${tagName}"
 
@@ -650,6 +673,7 @@ flows["${sha1}"] = {
             deleteContainer(containers.jamesJPA)
             deleteContainer(containers.jamesJpaSampleForTesting)
             deleteContainer(containers.jamesSpring)
+            deleteImage(images.jamesCassandraRabbitMQLdap)
             deleteImage(images.jamesCassandraRabbitMQ)
             deleteImage(images.jamesCassandra)
             deleteImage(images.jamesCassandraLdap)
