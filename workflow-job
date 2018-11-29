@@ -421,7 +421,7 @@ flows["${sha1}"] = {
 
             def tmpfsOptions = '--tmpfs=/tmp:rw,exec,size=1g --tmpfs=/james-project:rw,size=4g'
             def dockerVolume = '-v /var/run/docker.sock:/var/run/docker.sock'
-            def destinationVolumes = '--volume=/jpa/destination --volume=/cassandra/destination --volume=/spring/destination --volume=/cassandra-rabbitmq/destination'
+            def destinationVolumes = '--volume=/jpa/destination --volume=/cassandra/destination --volume=/spring/destination --volume=/cassandra-rabbitmq/destination --volume=/cassandra-rabbitmq-ldap/destination'
             def allVolumes = "${dockerVolume} --volumes-from=${containers.keys} ${useMavenCache} --volumes-from=${containers.gitPublish} ${destinationVolumes}"
             def compileNameDefinitions = "--name=${containers.jamesCompile}"
             def testNameDefinitions = "--name=${containers.jamesTest}"
