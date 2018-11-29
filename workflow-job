@@ -303,13 +303,11 @@ def partialBuild = {
 
 def partialBuildEnvFunction = {
     if (partialBuild()) {
-        def baseBranchEnv = "--env 'JAMES_PARTIAL_BUILD_BASE_BRANCH=origin/master'"
-        def additionalOptions = "--env 'MVN_ADDITIONAL_ARG_LINE=-Ppartial-build'"
-
-        return "${baseBranchEnv} ${additionalOptions}"
-    } else {
-        return "";
+        if (originalBranch == null) {
+            return "--env 'JAMES_PARTIAL_BUILD_BASE_BRANCH=origin/master' --env 'MVN_ADDITIONAL_ARG_LINE=-Ppartial-build"
+        }
     }
+    return "";
 }
 
 def partialBuildEnv = partialBuildEnvFunction();
