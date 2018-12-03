@@ -206,18 +206,13 @@ def libPathJPA = '/jpa/destination/james-server-jpa-guice.lib'
 def cliJarPathJPA = '/jpa/destination/james-server-cli.jar'
 def clilibPathJPA = '/jpa/destination/james-server-cli.lib'
 
-def jamesVersion = jamesVersion()
-def zipPath = "/spring/destination/james-server-app-${jamesVersion}-app.zip"
 def keystorePath = '/keys/keystore'
 def jamesCliWithOptions = 'java -jar /root/james-cli.jar -h 127.0.0.1'
-def jamesCliWithOptionsSpring = "/root/james-server-app-${jamesVersion}/bin/james-cli.sh -h 127.0.0.1 -p 9999"
 def useMavenCache = '-v maven-cache-volume:/root/.m2'
 
-private String jamesVersion() {
-    if (version == null) {
-        return "3.3.0-SNAPSHOT";
-    }
-    return "${version}";
+def version() {
+    return new XmlSlurper().parseText(readFile('pom.xml'))
+                           .version.text()
 }
 
 def executeCommand (command) {
@@ -554,6 +549,10 @@ flows["${sha1}"] = {
 
             //Deploying James Server with Spring + JPA
             sh "cd dockerfiles/run/spring; docker cp ${containers.keystore}:${keystorePath} destination/conf"
+            def jamesVersion = version()
+            def zipPath = "/spring/destination/james-server-app-${jamesVersion}-app.zip"
+            def jamesCliWithOptionsSpring = "/root/james-server-app-${jamesVersion}/bin/james-cli.sh -h 127.0.0.1 -p 9999"
+
             sh "cd dockerfiles/run/spring; docker cp ${containers.jamesTest}:${zipPath} destination"
 
             sh "cd dockerfiles/run/spring; docker build --tag=${images.jamesSpring} ."
