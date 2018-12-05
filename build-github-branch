@@ -4,15 +4,14 @@ import groovy.transform.TupleConstructor
 class BranchOnRepo {
     String repo
     String branch
-    String version
     String originalBranch = ""
 }
 
 def branchesToBuild = [
-    new BranchOnRepo('apache/james-project', 'master', '3.3.0-SNAPSHOT'),
-    new BranchOnRepo('apache/james-project', '3.1.x', '3.1.0', '3.1.x'),
-    new BranchOnRepo('apache/james-project', '3.2.x', '3.2.0', '3.2.x'),
-    new BranchOnRepo('linagora/james-project', 'openpaas-1.2.x', '3.2.0-SNAPSHOT', 'openpaas-1.2.x')
+    new BranchOnRepo('apache/james-project', 'master'),
+    new BranchOnRepo('apache/james-project', '3.1.x', '3.1.x'),
+    new BranchOnRepo('apache/james-project', '3.2.x', '3.2.x'),
+    new BranchOnRepo('linagora/james-project', 'openpaas-1.2.x', 'openpaas-1.2.x')
 ]
 
 branchesToBuild.each {
@@ -40,7 +39,7 @@ branchesToBuild.each {
                     [buildStepFailure: 'FAILURE',
                      failure         : 'FAILURE',
                      unstable        : 'UNSTABLE']) {
-                    predefinedProps([repoURL: repository, branch: branchOnRepo.branch, version: branchOnRepo.version, originalBranch: branchOnRepo.originalBranch])
+                    predefinedProps([repoURL: repository, branch: branchOnRepo.branch, originalBranch: branchOnRepo.originalBranch])
                 }
             }
         }

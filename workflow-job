@@ -9,7 +9,6 @@ import org.kohsuke.github.GHRepository
 // $branch parameter: branch to build specified (used by git workflow-plugin command)
 // $repoURL parameter: specifies the commiter GitHub repo URL
 // $sha1 parameter: specifies the actual commit
-// $version parameter: specifies the James version of the branch to build (only available when building a branch)
 // $originalBranch: the branch used for merge (optional)
 
 def hostname = 'james.linagora.com'
