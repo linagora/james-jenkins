@@ -405,6 +405,9 @@ flows["${sha1}"] = {
         try {
             //perform merge
             git url: authorParentURL, branch: branch
+            sh "git fetch origin"
+            sh "git checkout ${branch}"
+            def jamesVersion = version()
             sh "docker build --tag ${images.gitPublish} -f dockerfiles/merge/Dockerfile ."
             sh "docker run ${verbose} -t --name ${containers.gitPublish} -v /origin ${images.gitPublish} ${sha1ToBuild} ${mergeBranch} ${originalBranch}"
             merging.success();
@@ -549,7 +552,6 @@ flows["${sha1}"] = {
 
             //Deploying James Server with Spring + JPA
             sh "cd dockerfiles/run/spring; docker cp ${containers.keystore}:${keystorePath} destination/conf"
-            def jamesVersion = version()
             def zipPath = "/spring/destination/james-server-app-${jamesVersion}-app.zip"
             def jamesCliWithOptionsSpring = "/root/james-server-app-${jamesVersion}/bin/james-cli.sh -h 127.0.0.1 -p 9999"
 
