@@ -209,6 +209,7 @@ def keystorePath = '/keys/keystore'
 def jamesCliWithOptions = 'java -jar /root/james-cli.jar -h 127.0.0.1'
 def useMavenCache = '-v maven-cache-volume:/root/.m2'
 
+@NonCPS
 def version() {
     return new XmlSlurper().parseText(readFile('pom.xml'))
                            .version.text()
