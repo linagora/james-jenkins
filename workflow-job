@@ -437,8 +437,8 @@ flows["${sha1}"] = {
                 sh "docker logs ${containers.cassandra}"
             }
 
-            def exists = fileExists 'dockerfiles/run/guice/cassandra-rabbitmq-ldap'
-            if (exists) {
+            def rabbitMQProductExists = fileExists 'dockerfiles/run/guice/cassandra-rabbitmq-ldap'
+            if (rabbitMQProductExists) {
                 //Dockering Guice Server with Cassandra + RabbitMQ + Swift + Ldap
                 sh "cd dockerfiles/run/guice/cassandra-rabbitmq-ldap; docker cp ${containers.keystore}:${keystorePath} destination/conf"
                 sh "cd dockerfiles/run/guice/cassandra-rabbitmq-ldap; docker cp ${containers.jamesTest}:${jarPathCassandraRabbitMQLdap} destination"
@@ -619,11 +619,13 @@ flows["${sha1}"] = {
             def tagName = tag();
             sh "docker login -u ${dUser} -p ${dPassword}"
 
-            sh "docker tag ${images.jamesCassandraRabbitMQLdap} linagora/james-cassandra-rabbitmq-ldap-project:${tagName}"
-            sh "docker push linagora/james-cassandra-rabbitmq-ldap-project:${tagName}"
+            if (rabbitMQProductExists) {
+                sh "docker tag ${images.jamesCassandraRabbitMQLdap} linagora/james-cassandra-rabbitmq-ldap-project:${tagName}"
+                sh "docker push linagora/james-cassandra-rabbitmq-ldap-project:${tagName}"
 
-            sh "docker tag ${images.jamesCassandraRabbitMQ} linagora/james-rabbitmq-project:${tagName}"
-            sh "docker push linagora/james-rabbitmq-project:${tagName}"
+                sh "docker tag ${images.jamesCassandraRabbitMQ} linagora/james-rabbitmq-project:${tagName}"
+                sh "docker push linagora/james-rabbitmq-project:${tagName}"
+            }
 
             sh "docker tag ${images.jamesCassandra} linagora/james-project:${tagName}"
             sh "docker push linagora/james-project:${tagName}"
