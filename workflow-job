@@ -617,7 +617,9 @@ flows["${sha1}"] = {
             def dUser = dockerUser();
             def dPassword = dockerPassword();
             def tagName = tag();
-            sh "docker login -u ${dUser} -p ${dPassword}"
+            wrap([$class: 'MaskPasswordsBuildWrapper', varPasswordPairs: [[password: "${dUser}", var: 'dUser'], [password: "${dPassword}", var: 'dPassword']]]) {
+                sh "docker login -u ${dUser} -p ${dPassword}"
+            }
 
             if (rabbitMQProductExists) {
                 sh "docker tag ${images.jamesCassandraRabbitMQLdap} linagora/james-cassandra-rabbitmq-ldap-project:${tagName}"
@@ -654,7 +656,9 @@ flows["${sha1}"] = {
 
             if (packagageOnGitlab()) {
                 def gToken = gitlabToken();
-                sh "curl -X POST -Ftoken=${gToken} -F'ref=master' -F'variables[REPO_NAME]=oncommit' -F'variables[SOURCE_REPO]=https://github.com/linagora/james-project' https://ci.linagora.com/api/v4/projects/803/trigger/pipeline"
+                wrap([$class: 'MaskPasswordsBuildWrapper', varPasswordPairs: [[password: "${gToken}", var: 'gToken']]]) {
+                    sh "curl -X POST -Ftoken=${gToken} -F'ref=master' -F'variables[REPO_NAME]=oncommit' -F'variables[SOURCE_REPO]=https://github.com/linagora/james-project' https://ci.linagora.com/api/v4/projects/803/trigger/pipeline"
+                }
                 packagingTrigger.success();
             }
         } finally {

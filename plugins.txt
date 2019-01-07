@@ -8,6 +8,7 @@ github:1.12.0
 greenballs:1.15
 job-dsl:1.34
 mapdb-api:1.0.6.0
+mask-passwords:2.8
 maven-plugin:2.7.1
 parameterized-trigger:2.27
 plain-credentials:1.1
