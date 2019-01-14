@@ -1,6 +1,6 @@
 credentials:1.22
 durable-task:1.5
-envinject:1.91.3
+envinject:1.92
 git:2.3.5
 git-client:1.16.1
 git-server:1.6

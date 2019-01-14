@@ -36,3 +36,5 @@ COPY create-dsl-job.groovy /usr/share/jenkins/ref/init.groovy.d/create-dsl-job.g
 COPY basic-authentication.groovy /usr/share/jenkins/ref/init.groovy.d/basic-authentication.groovy
 
 COPY .dockercfg /usr/share/jenkins/ref/.dockercfg
+
+COPY envinject-plugin-configuration.xml /usr/share/jenkins/ref/envinject-plugin-configuration.xml
