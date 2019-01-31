@@ -128,6 +128,8 @@ class Images implements Serializable {
     def jamesSpring;
     def gitPublish;
 
+    def images;
+
     Images(String buildId) {
         jamesCompile = 'james-parent-compile-' + buildId;
         jamesCassandra = 'james-server-cassandra-' + buildId;
@@ -139,21 +141,14 @@ class Images implements Serializable {
         jamesJpaSampleForTesting = 'james-server-jpa-sample-testing' + buildId;
         jamesSpring = 'james-server-spring-' + buildId;
         gitPublish = 'git/publish-' + buildId;
+
+        images = [ jamesCompile, jamesCassandra, jamesCassandraRabbitMQ, jamesCassandraRabbitMQLdap, jamesCassandraLdap,
+                    jamesJPA, jamesJpaSample, jamesJpaSampleForTesting, jamesSpring, gitPublish ]
     }
 
-    def clean = { node ->
-        deleteImage(node, jamesCompile)
-        deleteImage(node, jamesCassandra)
-        deleteImage(node, jamesCassandraRabbitMQ)
-        deleteImage(node, jamesCassandraRabbitMQLdap)
-        deleteImage(node, jamesCassandraLdap)
-        deleteImage(node, jamesJPA)
-        deleteImage(node, jamesJpaSample)
-        deleteImage(node, jamesJpaSampleForTesting)
-        deleteImage(node, jamesSpring)
-        deleteImage(node, gitPublish)
+    def deleteAll = { node ->
+        new Command("docker rmi --force=true ${images.join(' ')} || true").execute(node)
     }
-    def deleteImage = { node, name -> new Command("docker rmi --force=true ${name}").execute(node) }
 }
 
 class Containers implements Serializable {
@@ -177,6 +172,8 @@ class Containers implements Serializable {
     def jamesSpring;
     def gitPublish;
 
+    def containers;
+
     Containers(String buildId) {
         cassandra = 'cassandra-' + buildId;
         elasticSearch = 'elasticSearch-' + buildId;
@@ -195,28 +192,15 @@ class Containers implements Serializable {
         jamesJpaSampleForTesting = 'james-server-jpa-sample-testing' + buildId;
         jamesSpring = 'james-server-spring-' + buildId;
         gitPublish = 'git-publish-' + buildId;
+
+        containers = [ cassandra, elasticSearch, rabbitmq, swift, integrationCassandraRabbitMQ, integrationCassandra, integrationJPA,
+                        integrationSpring, jamesCompile, jamesTest, jamesCassandra, jamesCassandraRabbitMQ, jamesCassandraLdap, jamesJPA,
+                       jamesJpaSampleForTesting, jamesSpring, gitPublish ]
     }
 
-    def clean = { node ->
-        deleteContainer(node, cassandra)
-        deleteContainer(node, elasticSearch)
-        deleteContainer(node, rabbitmq)
-        deleteContainer(node, swift)
-        deleteContainer(node, integrationCassandraRabbitMQ)
-        deleteContainer(node, integrationCassandra)
-        deleteContainer(node, integrationJPA)
-        deleteContainer(node, integrationSpring)
-        deleteContainer(node, jamesCompile)
-        deleteContainer(node, jamesTest)
-        deleteContainer(node, jamesCassandra)
-        deleteContainer(node, jamesCassandraRabbitMQ)
-        deleteContainer(node, jamesCassandraLdap)
-        deleteContainer(node, jamesJPA)
-        deleteContainer(node, jamesJpaSampleForTesting)
-        deleteContainer(node, jamesSpring)
-        deleteContainer(node, gitPublish)
+    def deleteAll = { node ->
+        new Command("docker rm --force=true --volumes=true ${containers.join(' ')} || true").execute(node)
     }
-    def deleteContainer = { node, name -> new Command("docker rm --force=true --volumes=true ${name}").execute(node)}
 }
 
 class Command {
@@ -469,8 +453,8 @@ flows["${sha1}"] = {
                     packagingTrigger.success();
                 }
             } finally {
-                containers.clean(this)
-                images.clean(this)
+                containers.deleteAll(this)
+                images.deleteAll(this)
             }
         }
     }
