@@ -1,0 +1,39 @@
+import groovy.transform.TupleConstructor
+
+@TupleConstructor()
+class TagOnRepo {
+    String repo
+    String tag
+}
+
+def tagsToBuild = [
+// Example:
+//        new TagOnRepo('aduprat/james-project', 'thisIsATag'),
+]
+
+tagsToBuild.each {
+    def tagOnRepo = it
+    def repository = 'https://github.com/' + tagOnRepo.repo
+   
+    job("build tag ${tagOnRepo.repo} ${tagOnRepo.tag}".replaceAll(/\//, '.')) {
+        githubProjectUrl(repository)
+        scm {
+            git {
+                remote {
+                    url(repository + '.git')
+                }
+                branch('refs/tags/' + tagOnRepo.tag)
+            }
+        }
+        steps {
+            downstreamParameterized {
+                trigger('workflow', 'ALWAYS', false,
+                    [buildStepFailure: 'FAILURE',
+                     failure         : 'FAILURE',
+                     unstable        : 'UNSTABLE']) {
+                    predefinedProps([repoURL: repository, tagName: tagOnRepo.tag, originalBranch: ""])
+                }
+            }
+        }
+    }
+}
