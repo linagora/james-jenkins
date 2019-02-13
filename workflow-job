@@ -6,9 +6,10 @@ import org.kohsuke.github.GHCommitState
 import org.kohsuke.github.GHRepository
 
 // This script must be called with
-// $branch parameter: branch to build specified (used by git workflow-plugin command)
 // $repoURL parameter: specifies the commiter GitHub repo URL
-// $sha1 parameter: specifies the actual commit
+// $branch parameter: branch to build specified (used by git workflow-plugin command)
+// or $tagName parameter: specifies the tag to build
+// or $sha1 parameter: specifies the actual commit
 // $originalBranch: the branch used for merge (optional)
 
 hostname = 'james.linagora.com'
@@ -16,6 +17,14 @@ maxRetries = 120
 author = extractUsername()
 authorParentURL = "https://github.com/${author}/james-project.git"
 repoName = extractRepoName()
+workingBranch = retrieveWorkingBranch()
+def retrieveWorkingBranch() {
+    if (tagName != null) {
+        return tagName
+    } else {
+        return branch
+    }
+}
 
 // Not given optional parameters are set to null
 def propertyMissing(String name) { null }
@@ -282,7 +291,7 @@ def flows = [:]
 
 def sha1OrBranch = {
     if (sha1 == null) {
-        return "${branch}";
+        return "${workingBranch}";
     }
     return sha1;
 }
@@ -295,23 +304,28 @@ def isBranch = {
     return sha1 == null;
 }
 
+def isTag = {
+    return tagName != null;
+}
+
 def tag = {
+    if (isTag()) {
+        return "${tagName}";
+    }
     if (isMaster()) {
         return "latest";
     }
-    return "${branch}";
+    return "${workingBranch}";
 }
 
-dockerTag = tag
+dockerTag = tag()
 dockerUser = System.getenv("DOCKER_USER")
 dockerPassword = System.getenv("DOCKER_PASSWORD")
 
-def gitlabToken = {
-    return System.getenv("GITLAB_TOKEN");
-}
+gitlabToken = System.getenv("GITLAB_TOKEN")
 
 def publishToDocker = {
-    return isBranch() && dockerUser != null;
+    return (isBranch() || isTag()) && dockerUser != null;
 }
 
 def partialBuild = {
@@ -329,7 +343,7 @@ def partialBuildEnvFunction = {
 
 partialBuildEnv = partialBuildEnvFunction();
 
-def packagageOnGitlab = {
+def packageOnGitlab = {
     return isMaster() && gitlabToken() != null;
 }
 
@@ -352,7 +366,7 @@ def containerIp(dockerContainer) {
 }
 
 // Define main variables
-buildId = "${branch.toLowerCase()}-${UUID.randomUUID()}"
+buildId = "${workingBranch.toLowerCase()}-${UUID.randomUUID()}"
 mergeBranch = "MERGE-${buildId}"
 images = new Images(buildId);
 containers = new Containers(buildId);
@@ -415,7 +429,7 @@ if (publishToDocker()) {
     statuses.addPendingStatus(publishing);
 }
 packagingTrigger;
-if (packagageOnGitlab()) {
+if (packageOnGitlab()) {
     packagingTrigger = commitStatusFactory.from("Triggering packaging");
     statuses.addPendingStatus(packagingTrigger);
 }
@@ -425,7 +439,12 @@ flows["${sha1}"] = {
     node('remote') {
         ws("/home/jenkins/build/workspace/${env.BUILD_NUMBER}") {
             try {
-                merge()
+                if (isTag()) {
+                    buildVolumeFromTag()
+                } else {
+                    merge()
+                }
+                merging.success();
 
                 compile()
 
@@ -446,7 +465,7 @@ flows["${sha1}"] = {
                     publish()
                 }
 
-                if (packagageOnGitlab()) {
+                if (packageOnGitlab()) {
                     wrap([$class: 'MaskPasswordsBuildWrapper', varPasswordPairs: [[password: "${gitlabToken}", var: 'gitlabToken']]]) {
                         sh "curl -X POST -Ftoken=${gitlabToken} -F'ref=master' -F'variables[REPO_NAME]=oncommit' -F'variables[SOURCE_REPO]=https://github.com/linagora/james-project' https://ci.linagora.com/api/v4/projects/803/trigger/pipeline"
                     }
@@ -471,7 +490,22 @@ def merge() {
     jamesVersion = version()
     sh "docker build --tag ${images.gitPublish} -f dockerfiles/merge/Dockerfile ."
     sh "docker run ${verbose} -t --name ${containers.gitPublish} -v /origin ${images.gitPublish} ${sha1ToBuild} ${mergeBranch} ${originalBranch}"
-    merging.success();
+}
+
+def buildVolumeFromTag() {
+    git url: authorParentURL, branch: "master"
+    sh "git fetch --tags origin"
+    sh "git checkout ${tagName} -b ${mergeBranch}"
+    jamesVersion = version()
+    def dockerfile = """\
+                        FROM debian:8.11
+                        
+                        ADD . /origin
+                        WORKDIR /origin
+                        CMD echo \"Volume built\"""".stripIndent()
+    sh "echo \"${dockerfile}\" > Dockerfile"
+    sh "docker build --tag ${images.gitPublish} ."
+    sh "docker run ${verbose} -t --name ${containers.gitPublish} -v /origin ${images.gitPublish}"
 }
 
 def compile() {
