@@ -343,7 +343,7 @@ def partialBuildEnvFunction = {
 partialBuildEnv = partialBuildEnvFunction();
 
 def packageOnGitlab = {
-    return isMaster() && gitlabToken() != null;
+    return isMaster() && gitlabToken != null;
 }
 
 def isAlive(dockerContainer) {
