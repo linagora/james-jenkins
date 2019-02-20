@@ -432,6 +432,7 @@ if (packageOnGitlab()) {
     packagingTrigger = commitStatusFactory.from("Triggering packaging");
     statuses.addPendingStatus(packagingTrigger);
 }
+rabbitMQProductExists = false
 flows["${sha1}"] = {
 
     stage "Build"
@@ -444,6 +445,7 @@ flows["${sha1}"] = {
                     merge()
                 }
                 merging.success();
+                rabbitMQProductExists = fileExists 'dockerfiles/run/guice/cassandra-rabbitmq-ldap'
 
                 compile()
 
@@ -534,7 +536,6 @@ def deployGuiceCassandra() {
         sh "docker logs ${containers.cassandra}"
     }
 
-    def rabbitMQProductExists = fileExists 'dockerfiles/run/guice/cassandra-rabbitmq-ldap'
     if (rabbitMQProductExists) {
         deployGuiceRabbitMQ()
         testGuiceRabbitMQ()
