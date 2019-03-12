@@ -7,7 +7,8 @@ class TagOnRepo {
 }
 
 def tagsToBuild = [
-        new TagOnRepo('linagora/james-project', 'openpaas-1.4.0')
+        new TagOnRepo('linagora/james-project', 'openpaas-1.4.0'),
+        new TagOnRepo('linagora/james-project', 'openpaas-1.4.1')
 ]
 
 tagsToBuild.each {
