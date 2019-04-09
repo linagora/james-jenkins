@@ -522,7 +522,7 @@ def compile() {
     sh "cd dockerfiles/; docker run ${verbose} ${tmpfsOptions} --volumes-from=${containers.gitPublish} ${compileNameDefinitions} --env 'MVN_ADDITIONAL_ARG_LINE=-T 1C' ${images.jamesCompile} -s ${mergeBranch}"
     buildingJava8.success();
 
-    sh "cd dockerfiles/; docker run ${verbose} ${tmpfsOptions} ${allVolumes} --workdir $PWD ${testNameDefinitions} ${partialBuildEnv} ${images.jamesCompile} ${mergeBranch}"
+    sh "cd dockerfiles/; docker run ${verbose} ${tmpfsOptions} ${allVolumes} --workdir \$PWD ${testNameDefinitions} ${partialBuildEnv} ${images.jamesCompile} ${mergeBranch}"
     testingJava8.success();
 }
 
