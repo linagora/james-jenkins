@@ -14,6 +14,8 @@ import org.kohsuke.github.GHRepository
 
 hostname = 'james.linagora.com'
 maxRetries = 120
+IMAP_PORT = 143
+SMTP_PORT = 587
 author = extractUsername()
 authorParentURL = "https://github.com/${author}/james-project.git"
 repoName = extractRepoName()
@@ -563,7 +565,7 @@ def deployGuiceCassandra() {
     } catch (Exception e) {
         sh "docker logs ${containers.cassandra}"
     }
-    sh "docker run --detach=true --name=${containers.jamesCassandra} --hostname ${hostname} --expose=143 --publish-all=true ${jamesLinks} ${images.jamesCassandra}"
+    sh "docker run --detach=true --name=${containers.jamesCassandra} --hostname ${hostname} --expose=${IMAP_PORT} --expose=${SMTP_PORT} --publish-all=true ${jamesLinks} ${images.jamesCassandra}"
 
     echo 'Waiting for James server to be deployed'
     try {
@@ -596,7 +598,7 @@ def deployGuiceRabbitMQ() {
 
     sh "cd dockerfiles/run/guice/cassandra-rabbitmq; docker build --tag=${images.jamesCassandraRabbitMQ} ."
 
-    sh "docker run --detach=true --name=${containers.jamesCassandraRabbitMQ} --hostname ${hostname} --expose=143 --publish-all=true ${jamesLinks} ${rabbitmqSwiftLinks} ${images.jamesCassandraRabbitMQ}"
+    sh "docker run --detach=true --name=${containers.jamesCassandraRabbitMQ} --hostname ${hostname} --expose=${IMAP_PORT} --expose=${SMTP_PORT} --publish-all=true ${jamesLinks} ${rabbitmqSwiftLinks} ${images.jamesCassandraRabbitMQ}"
 
     echo 'Waiting for James server to be deployed'
     try {
@@ -611,7 +613,7 @@ def testGuiceRabbitMQ() {
 
     echo "Running integration tests on Cassandra + RabbitMQ + Swift on ${buildId}"
     def jamesCassandraRabbitMQIp = containerIp("${containers.jamesCassandraRabbitMQ}")
-    sh "docker run ${verbose} --name=${containers.integrationCassandraRabbitMQ} --entrypoint=\"/root/integration_tests.sh\" --volumes-from=${containers.gitPublish} ${images.jamesCompile} ${jamesCassandraRabbitMQIp} 143 ${sha1ToBuild}"
+    sh "docker run ${verbose} --name=${containers.integrationCassandraRabbitMQ} --entrypoint=\"/root/integration_tests.sh\" --volumes-from=${containers.gitPublish} ${images.jamesCompile} ${jamesCassandraRabbitMQIp} ${IMAP_PORT} ${SMTP_PORT} ${sha1ToBuild}"
 }
 
 def testGuiceCassandra() {
@@ -619,7 +621,7 @@ def testGuiceCassandra() {
 
     echo "Running integration tests on Cassandra on ${buildId}"
     def jamesCassandraIp = containerIp("${containers.jamesCassandra}")
-    sh "docker run ${verbose} --name=${containers.integrationCassandra} --entrypoint=\"/root/integration_tests.sh\" --volumes-from=${containers.gitPublish} ${images.jamesCompile} ${jamesCassandraIp} 143 ${sha1ToBuild}"
+    sh "docker run ${verbose} --name=${containers.integrationCassandra} --entrypoint=\"/root/integration_tests.sh\" --volumes-from=${containers.gitPublish} ${images.jamesCompile} ${jamesCassandraIp} ${IMAP_PORT} ${SMTP_PORT} ${sha1ToBuild}"
 
     testingGuiceCassandra.success();
 }
@@ -635,7 +637,7 @@ def deployGuiceJPA() {
 
     dockeringGuiceJPA.success()
 
-    sh "docker run --detach=true --name=${containers.jamesJPA} --hostname ${hostname} --expose=143 --publish-all=true ${images.jamesJPA}"
+    sh "docker run --detach=true --name=${containers.jamesJPA} --hostname ${hostname} --expose=${IMAP_PORT} --expose=${SMTP_PORT} --publish-all=true ${images.jamesJPA}"
 
     echo 'Waiting for James server to be deployed'
     try {
@@ -652,7 +654,7 @@ def testGuiceJPA() {
 
     echo "Running integration tests on JPA on ${buildId}"
     def jamesJPAIp = containerIp("${containers.jamesJPA}")
-    sh "docker run ${verbose} --name=${containers.integrationJPA} --entrypoint=\"/root/integration_tests.sh\" --volumes-from=${containers.gitPublish} ${images.jamesCompile} ${jamesJPAIp} 143 ${sha1ToBuild}"
+    sh "docker run ${verbose} --name=${containers.integrationJPA} --entrypoint=\"/root/integration_tests.sh\" --volumes-from=${containers.gitPublish} ${images.jamesCompile} ${jamesJPAIp} ${IMAP_PORT} ${SMTP_PORT} ${sha1ToBuild}"
 
     testingGuiceJPA.success();
 }
@@ -669,7 +671,7 @@ def deploySpringJPA() {
 
     dockeringSpringJPA.success()
 
-    sh "docker run --detach=true --name=${containers.jamesSpring} --hostname ${hostname} --expose=143 --publish-all=true ${images.jamesSpring}"
+    sh "docker run --detach=true --name=${containers.jamesSpring} --hostname ${hostname} --expose=${IMAP_PORT} --expose=${SMTP_PORT} --publish-all=true ${images.jamesSpring}"
 
     echo 'Waiting for James server to be deployed'
     try {
@@ -685,7 +687,7 @@ def testSpringJPA() {
 
     echo "Running integration tests on ${buildId}"
     def jamesSpringIp = containerIp("${containers.jamesSpring}")
-    sh "docker run ${verbose} --name=${containers.integrationSpring} --entrypoint=\"/root/integration_tests.sh\" --volumes-from=${containers.gitPublish} ${images.jamesCompile} ${jamesSpringIp} 143 ${sha1ToBuild}"
+    sh "docker run ${verbose} --name=${containers.integrationSpring} --entrypoint=\"/root/integration_tests.sh\" --volumes-from=${containers.gitPublish} ${images.jamesCompile} ${jamesSpringIp} ${IMAP_PORT} ${SMTP_PORT} ${sha1ToBuild}"
 
     testingSpringJPA.success();
 }
@@ -709,7 +711,7 @@ def deployGuiceJPASample() {
 
     dockeringGuiceJPASampleTesting.success()
 
-    sh "docker run --detach=true --name=${containers.jamesJpaSampleForTesting} --hostname ${hostname} --expose=143 --publish-all=true ${images.jamesJpaSampleForTesting}"
+    sh "docker run --detach=true --name=${containers.jamesJpaSampleForTesting} --hostname ${hostname} --expose=${IMAP_PORT} --expose=${SMTP_PORT} --publish-all=true ${images.jamesJpaSampleForTesting}"
 
     echo 'Waiting for James server to be deployed and provision data'
     try {
