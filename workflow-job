@@ -138,6 +138,7 @@ class Images implements Serializable {
     def jamesJpaSample
     def jamesJpaSampleForTesting
     def jamesSpring
+    def jamesMemory
     def gitPublish
 
     def images
@@ -152,10 +153,11 @@ class Images implements Serializable {
         jamesJpaSample = 'james-server-jpa-sample-' + buildId
         jamesJpaSampleForTesting = 'james-server-jpa-sample-testing' + buildId
         jamesSpring = 'james-server-spring-' + buildId
+        jamesMemory = 'james-server-memory-' + buildId
         gitPublish = 'git/publish-' + buildId
 
         images = [ jamesCompile, jamesCassandra, jamesCassandraRabbitMQ, jamesCassandraRabbitMQLdap, jamesCassandraLdap,
-                    jamesJPA, jamesJpaSample, jamesJpaSampleForTesting, jamesSpring, gitPublish ]
+                    jamesJPA, jamesJpaSample, jamesJpaSampleForTesting, jamesSpring, jamesMemory, gitPublish ]
     }
 
     def customDependenciesOrDefault(def node) {
@@ -200,6 +202,7 @@ class Containers implements Serializable {
     def integrationCassandra
     def integrationJPA
     def integrationSpring
+    def integrationMemory
     def jamesCompile
     def jamesTest
     def jamesCassandra
@@ -208,6 +211,7 @@ class Containers implements Serializable {
     def jamesJPA
     def jamesJpaSampleForTesting
     def jamesSpring
+    def jamesMemory
     def gitPublish
 
     def containers
@@ -222,6 +226,7 @@ class Containers implements Serializable {
         integrationJPA = 'integration-jpa-' + buildId
         integrationSpring = 'integration-spring-' + buildId
         jamesCompile = 'james-parent-compile-' + buildId
+        integrationMemory = 'integration-memory-' + buildId
         jamesTest = 'james-parent-test-' + buildId
         jamesCassandra = 'james-server-cassandra-' + buildId
         jamesCassandraRabbitMQ = 'james-server-cassandra-rabbitmq-' + buildId
@@ -229,11 +234,13 @@ class Containers implements Serializable {
         jamesJPA = 'james-server-jpa-' + buildId
         jamesJpaSampleForTesting = 'james-server-jpa-sample-testing' + buildId
         jamesSpring = 'james-server-spring-' + buildId
+        jamesMemory = 'james-server-memory-' + buildId
         gitPublish = 'git-publish-' + buildId
 
-        containers = [ cassandra, elasticSearch, rabbitmq, swift, integrationCassandraRabbitMQ, integrationCassandra, integrationJPA,
-                        integrationSpring, jamesCompile, jamesTest, jamesCassandra, jamesCassandraRabbitMQ, jamesCassandraLdap, jamesJPA,
-                       jamesJpaSampleForTesting, jamesSpring, gitPublish ]
+        containers = [ cassandra, elasticSearch, rabbitmq, swift,
+                       integrationCassandraRabbitMQ, integrationCassandra, integrationJPA, integrationSpring, integrationMemory,
+                       jamesCompile, jamesTest, jamesCassandra, jamesCassandraRabbitMQ, jamesCassandraLdap, jamesJPA, jamesJpaSampleForTesting, jamesSpring, jamesMemory,
+                       gitPublish ]
     }
 
     def deleteAll = { node ->
@@ -424,6 +431,10 @@ dockeringGuiceJPA = commitStatusFactory.from("Dockering Guice JPA")
 statuses.addPendingStatus(dockeringGuiceJPA)
 dockeringSpringJPA = commitStatusFactory.from("Dockering Spring JPA")
 statuses.addPendingStatus(dockeringSpringJPA)
+dockeringMemory = commitStatusFactory.from("Dockering Memory")
+statuses.addPendingStatus(dockeringMemory)
+deployingMemory = commitStatusFactory.from("Deploying Memory")
+statuses.addPendingStatus(deployingMemory)
 dockeringGuiceCassandraLdap = commitStatusFactory.from("Building Guice Cassandra/Ldap")
 statuses.addPendingStatus(dockeringGuiceCassandraLdap)
 dockeringGuiceJPASampleTesting = commitStatusFactory.from("Dockering Guice JPA with data provision")
@@ -448,8 +459,11 @@ testingGuiceJPA = commitStatusFactory.from("Integrating Guice JPA")
 statuses.addPendingStatus(testingGuiceJPA)
 testingSpringJPA = commitStatusFactory.from("Integrating Spring JPA")
 statuses.addPendingStatus(testingSpringJPA)
+testingMemory = commitStatusFactory.from("Integrating Memory")
+statuses.addPendingStatus(testingMemory)
 
 publishing
+
 deployAndValidatingBuilder = [:]
 if (publishToDocker()) {
     publishing = commitStatusFactory.from("Publishing")
@@ -486,6 +500,9 @@ flows["${sha1}"] = {
 
                 deploySpringJPA()
                 testSpringJPA()
+
+                deployMemory()
+                testMemory()
 
                 buildGuiceCassandraLdap()
 
@@ -549,7 +566,7 @@ def compile() {
 
     def tmpfsOptions = '--tmpfs=/tmp:rw,exec,size=1g --tmpfs=/james-project:rw,size=4g'
     def dockerVolume = '-v /var/run/docker.sock:/var/run/docker.sock'
-    def destinationVolumes = '--volume=/jpa/destination --volume=/cassandra/destination --volume=/spring/destination --volume=/cassandra-rabbitmq/destination --volume=/cassandra-rabbitmq-ldap/destination'
+    def destinationVolumes = '--volume=/jpa/destination --volume=/cassandra/destination --volume=/spring/destination --volume=/cassandra-rabbitmq/destination --volume=/cassandra-rabbitmq-ldap/destination --volume=/memory/destination'
     def allVolumes = "${dockerVolume} --volumes-from=${containers.keys} --volumes-from=${containers.gitPublish} ${destinationVolumes}"
     def compileNameDefinitions = "--name=${containers.jamesCompile}"
     def testNameDefinitions = "--name=${containers.jamesTest}"
@@ -725,6 +742,39 @@ def testSpringJPA() {
     testingSpringJPA.success()
 }
 
+def deployMemory() {
+    sh "cd dockerfiles/run/guice/memory; docker cp ${containers.keystore}:${keystorePath} destination/conf"
+    sh "cd dockerfiles/run/guice/memory; docker cp ${containers.jamesTest}:${jarPathMemory} destination"
+    sh "cd dockerfiles/run/guice/memory; docker cp ${containers.jamesTest}:${libPathMemory} destination"
+    sh "cd dockerfiles/run/guice/memory; docker cp ${containers.jamesTest}:${cliJarPathMemory} destination"
+    sh "cd dockerfiles/run/guice/memory; docker cp ${containers.jamesTest}:${clilibPathMemory} destination"
+
+    sh "cd dockerfiles/run/guice/memory; docker build --tag=${images.jamesMemory} ."
+
+    dockeringMemory.success()
+
+    sh "docker run --detach=true --name=${containers.jamesMemory} --hostname ${hostname} --expose=${IMAP_PORT} --expose=${SMTP_PORT} --publish-all=true ${images.jamesMemory}"
+
+    echo 'Waiting for James server to be deployed'
+    try {
+        waitForCommandSuccess("docker exec ${containers.jamesMemory} ${jamesCliWithOptions} listusers", maxRetries)
+    } catch (Exception e) {
+        sh "docker logs ${containers.jamesMemory}"
+    }
+
+    deployingMemory.success()
+}
+
+def testMemory() {
+    provisionDataForIntegrationTest("${containers.jamesMemory}", "${jamesCliWithOptions}")
+
+    echo "Running integration tests on Memory on ${buildId}"
+    def jamesMemoryIp = containerIp("${containers.jamesMemory}")
+    sh "docker run ${verbose} --name=${containers.integrationMemory} --entrypoint=\"/root/integration_tests.sh\" --volumes-from=${containers.gitPublish} ${images.jamesCompile} ${jamesMemoryIp} ${IMAP_PORT} ${SMTP_PORT} ${sha1ToBuild}"
+
+    testingMemory.success()
+}
+
 def buildGuiceCassandraLdap() {
     sh "cd dockerfiles/run/guice/cassandra-ldap; docker cp ${containers.keystore}:${keystorePath} destination/conf"
     sh "cd dockerfiles/run/guice/cassandra-ldap; docker cp ${containers.jamesTest}:${jarPathCassandraLdap} destination"
@@ -774,6 +824,9 @@ def publish() {
 
     sh "docker tag ${images.jamesCassandraLdap} linagora/james-ldap-project:${dockerTag}"
     sh "docker push linagora/james-ldap-project:${dockerTag}"
+
+    sh "docker tag ${images.jamesMemory} linagora/james-memory:${dockerTag}"
+    sh "docker push linagora/james-memory:${dockerTag}"
 
     sh "cd dockerfiles/run/guice/provisioned; docker build --tag=${images.jamesJpaSample} ."
 
