@@ -559,7 +559,7 @@ def deployGuiceCassandra() {
     sh "docker rm --force --volumes ${containers.cassandra} || true"
     sh "docker rm --force --volumes ${containers.elasticSearch} || true"
     sh "docker run --detach=true --name=${containers.cassandra} ${images.cassandra}"
-    sh "docker run --detach=true --name=${containers.elasticSearch} ${images.elasticSearch}"
+    sh "docker run --detach=true --name=${containers.elasticSearch} --env 'discovery.type=single-node' ${images.elasticSearch}"
     try {
         waitForCommandSuccess("docker exec ${containers.cassandra} cqlsh -e 'describe columnfamily system.local;'", maxRetries)
     } catch (Exception e) {
