@@ -125,7 +125,7 @@ public class CommitStatus implements Serializable {
 
 class Images implements Serializable {
     def cassandra = 'cassandra:3.11.3'
-    def elasticSearch = 'elasticsearch:6.7.2'
+    def elasticSearch = 'docker.elastic.co/elasticsearch/elasticsearch:6.3.2'
     def rabbitmq = "rabbitmq:3.7.7-management"
     def swift = "linagora/openstack-keystone-swift:pike"
     def jamesCompile;
