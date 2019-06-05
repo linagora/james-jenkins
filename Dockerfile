@@ -2,6 +2,9 @@ FROM jenkins:1.642.4
 
 USER root
 
+RUN echo "deb http://archive.debian.org/debian jessie main" > /etc/apt/sources.list \
+    && rm /etc/apt/sources.list.d/jessie-backports.list
+
 RUN apt-get update \
     && apt-get install -y apt-transport-https ca-certificates \
     && apt-key adv --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys 58118E89F3A912897C070ADBF76221572C52609D \
