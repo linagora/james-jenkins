@@ -1,6 +1,7 @@
-import java.util.List
+import java.io.StringReader
 import java.util.ArrayList
 import java.util.UUID
+import java.util.Properties
 import org.kohsuke.github.GitHub
 import org.kohsuke.github.GHCommitState
 import org.kohsuke.github.GHRepository
@@ -124,10 +125,10 @@ public class CommitStatus implements Serializable {
 }
 
 class Images implements Serializable {
-    def cassandra = 'cassandra:3.11.3'
-    def elasticSearch = 'docker.elastic.co/elasticsearch/elasticsearch:6.3.2'
-    def rabbitmq = "rabbitmq:3.7.7-management"
-    def swift = "linagora/openstack-keystone-swift:pike"
+    def cassandra
+    def elasticSearch
+    def rabbitmq
+    def swift
     def jamesCompile
     def jamesCassandra
     def jamesCassandraRabbitMQ
@@ -155,6 +156,32 @@ class Images implements Serializable {
 
         images = [ jamesCompile, jamesCassandra, jamesCassandraRabbitMQ, jamesCassandraRabbitMQLdap, jamesCassandraLdap,
                     jamesJPA, jamesJpaSample, jamesJpaSampleForTesting, jamesSpring, gitPublish ]
+    }
+
+    def customDependenciesOrDefault(def node) {
+        Properties properties = fromFile(node, 'dockerfiles/run/dependencies.properties')
+
+        cassandra = properties."cassandra" ?: 'cassandra:3.11.3'
+        elasticSearch = properties."elasticSearch" ?: 'docker.elastic.co/elasticsearch/elasticsearch:6.3.2'
+        rabbitmq = properties."rabbitmq" ?: 'rabbitmq:3.7.7-management'
+        swift = properties."swift" ?: 'linagora/openstack-keystone-swift:pike'
+    }
+
+    def fromFile(def node, def file) {
+        if (!node.fileExists('dockerfiles/run/dependencies.properties')) {
+            node.echo "Using default dependencies"
+            return new Properties()
+        }
+
+        try {
+            Properties properties = new Properties()
+            properties.load(new StringReader(node.readFile(file)))
+            return properties
+        } catch (Exception e) {
+            node.echo "Exception occured while getting dependencies, using default values"
+            node.echo "${e}"
+            return new Properties()
+        }
     }
 
     def deleteAll = { node ->
@@ -369,7 +396,6 @@ def containerIp(dockerContainer) {
 // Define main variables
 buildId = "${workingBranch.toLowerCase()}-${UUID.randomUUID()}"
 mergeBranch = "MERGE-${buildId}"
-images = new Images(buildId)
 containers = new Containers(buildId)
 jamesLinks = "--link ${containers.cassandra}:cassandra --link ${containers.elasticSearch}:elasticsearch"
 rabbitmqSwiftLinks = "--link ${containers.rabbitmq}:rabbitmq --link ${containers.swift}:swift"
@@ -435,6 +461,7 @@ if (packageOnGitlab()) {
     statuses.addPendingStatus(packagingTrigger)
 }
 rabbitMQProductExists = false
+images = null
 flows["${sha1}"] = {
 
     stage "Build"
@@ -442,9 +469,9 @@ flows["${sha1}"] = {
         ws("/home/jenkins/build/workspace/${env.BUILD_NUMBER}") {
             try {
                 if (isTag()) {
-                    buildVolumeFromTag()
+                    buildVolumeFromTag(this)
                 } else {
-                    merge()
+                    merge(this)
                 }
                 merging.success()
                 rabbitMQProductExists = fileExists 'dockerfiles/run/guice/cassandra-rabbitmq-ldap'
@@ -476,7 +503,7 @@ flows["${sha1}"] = {
                 }
             } finally {
                 containers.deleteAll(this)
-                images.deleteAll(this)
+                images?.deleteAll(this)
             }
         }
     }
@@ -486,20 +513,26 @@ flows["${sha1}"] = {
 parallel flows
 
 jamesVersion = ""
-def merge() {
+def merge(def node) {
     git url: authorParentURL, branch: branch
     sh "git fetch origin"
     sh "git checkout ${branch}"
     jamesVersion = version()
+    images = new Images(buildId)
+    images.customDependenciesOrDefault(node)
+
     sh "docker build --tag ${images.gitPublish} -f dockerfiles/merge/Dockerfile ."
     sh "docker run ${verbose} -t --name ${containers.gitPublish} -v /origin ${images.gitPublish} ${sha1ToBuild} ${mergeBranch} ${originalBranch}"
 }
 
-def buildVolumeFromTag() {
+def buildVolumeFromTag(def node) {
     git url: authorParentURL, branch: "master"
     sh "git fetch --tags origin"
     sh "git checkout ${tagName} -b ${mergeBranch}"
     jamesVersion = version()
+    images = new Images(buildId)
+    images.customDependenciesOrDefault(node)
+
     def dockerfile = """\
                         FROM debian:8.11
                         
