@@ -1,6 +1,7 @@
-import java.util.List
+import java.io.StringReader
 import java.util.ArrayList
 import java.util.UUID
+import java.util.Properties
 import org.kohsuke.github.GitHub
 import org.kohsuke.github.GHCommitState
 import org.kohsuke.github.GHRepository
@@ -32,29 +33,29 @@ def retrieveWorkingBranch() {
 def propertyMissing(String name) { null }
 
 public String extractUsername() {
-    return "${repoURL}".split('/')[3];
+    return "${repoURL}".split('/')[3]
 }
 
 public String extractRepoName() {
-    return "${repoURL}".split('/')[4].split('\\.')[0];
+    return "${repoURL}".split('/')[4].split('\\.')[0]
 }
 
 public class CommitStatuses implements Serializable {
-    def commitStatuses;
+    def commitStatuses
 
     public CommitStatuses() {
-        commitStatuses = new ArrayList<CommitStatus>();
+        commitStatuses = new ArrayList<CommitStatus>()
     }
 
     public void addPendingStatus(CommitStatus status) {
-        commitStatuses.add(status);
-        status.pending();
+        commitStatuses.add(status)
+        status.pending()
     }
 
     public void failPendingStatuses() {
         for (CommitStatus status : commitStatuses) {
             if (status.state.equals("PENDING")) {
-                status.failure();
+                status.failure()
             }
         }
     }
@@ -62,99 +63,125 @@ public class CommitStatuses implements Serializable {
 
 public class CommitStatusFactory implements Serializable {
 
-    private final String repoName;
-    private final String sha1;
-    private int stepNumber = 0;
+    private final String repoName
+    private final String sha1
+    private int stepNumber = 0
 
     public CommitStatusFactory(String repoName, String sha1) {
-        this.repoName = repoName;
-        this.sha1 = sha1;
+        this.repoName = repoName
+        this.sha1 = sha1
     }
 
     public CommitStatus from(String description) {
-        stepNumber++;
-        return new CommitStatus(repoName, sha1, description, stepNumber);
+        stepNumber++
+        return new CommitStatus(repoName, sha1, description, stepNumber)
     }
 }
 
 public class CommitStatus implements Serializable {
-    def repoName;
-    def sha1;
-    def description;
-    def context;
-    def state;
+    def repoName
+    def sha1
+    def description
+    def context
+    def state
 
     public CommitStatus(String repoName, String sha1, String description, int stepNumber) {
-        this.repoName = repoName;
-        this.sha1 = sha1;
-        this.description = description;
-        this.context = "workflow-job step " + stepNumber;
+        this.repoName = repoName
+        this.sha1 = sha1
+        this.description = description
+        this.context = "workflow-job step " + stepNumber
     }
 
-    def pending() { createPendingCommitStatus(); }
+    def pending() { createPendingCommitStatus() }
 
-    def success() { createSuccessCommitStatus(); }
+    def success() { createSuccessCommitStatus() }
 
-    def failure() { createFailureCommitStatus(); }
+    def failure() { createFailureCommitStatus() }
 
     private void createPendingCommitStatus() {
-        createCommitStatus("PENDING");
+        createCommitStatus("PENDING")
     }
 
     private void createSuccessCommitStatus() {
-        createCommitStatus("SUCCESS");
+        createCommitStatus("SUCCESS")
     }
 
     private void createFailureCommitStatus() {
-        createCommitStatus("FAILURE");
+        createCommitStatus("FAILURE")
     }
 
     @NonCPS
     private GHRepository getRepository(String repoName) {
-        return GitHub.connectUsingOAuth(System.getenv("GITHUB_TOKEN")).getRepository("linagora/" + repoName);
+        return GitHub.connectUsingOAuth(System.getenv("GITHUB_TOKEN")).getRepository("linagora/" + repoName)
     }
 
     @NonCPS
     private void createCommitStatus(String state) {
-        this.state = state;
+        this.state = state
         if (sha1 != null) {
-            getRepository(repoName).createCommitStatus(sha1, GHCommitState.valueOf(state), null, description, context);
+            getRepository(repoName).createCommitStatus(sha1, GHCommitState.valueOf(state), null, description, context)
         }
     }
 }
 
 class Images implements Serializable {
-    def cassandra = 'cassandra:3.11.3'
-    def elasticSearch = 'docker.elastic.co/elasticsearch/elasticsearch:6.3.2'
-    def rabbitmq = "rabbitmq:3.7.7-management"
-    def swift = "linagora/openstack-keystone-swift:pike"
-    def jamesCompile;
-    def jamesCassandra;
-    def jamesCassandraRabbitMQ;
-    def jamesCassandraRabbitMQLdap;
-    def jamesCassandraLdap;
-    def jamesJPA;
-    def jamesJpaSample;
-    def jamesJpaSampleForTesting;
-    def jamesSpring;
-    def gitPublish;
+    def cassandra
+    def elasticSearch
+    def rabbitmq
+    def swift
+    def jamesCompile
+    def jamesCassandra
+    def jamesCassandraRabbitMQ
+    def jamesCassandraRabbitMQLdap
+    def jamesCassandraLdap
+    def jamesJPA
+    def jamesJpaSample
+    def jamesJpaSampleForTesting
+    def jamesSpring
+    def gitPublish
 
-    def images;
+    def images
 
     Images(String buildId) {
-        jamesCompile = 'james-parent-compile-' + buildId;
-        jamesCassandra = 'james-server-cassandra-' + buildId;
-        jamesCassandraRabbitMQ = 'james-server-cassandra-rabbitmq-' + buildId;
-        jamesCassandraRabbitMQLdap = 'james-server-cassandra-rabbitmq-ldap-' + buildId;
-        jamesCassandraLdap = 'james-server-cassandra-ldap-' + buildId;
-        jamesJPA = 'james-server-jpa-' + buildId;
-        jamesJpaSample = 'james-server-jpa-sample-' + buildId;
-        jamesJpaSampleForTesting = 'james-server-jpa-sample-testing' + buildId;
-        jamesSpring = 'james-server-spring-' + buildId;
-        gitPublish = 'git/publish-' + buildId;
+        jamesCompile = 'james-parent-compile-' + buildId
+        jamesCassandra = 'james-server-cassandra-' + buildId
+        jamesCassandraRabbitMQ = 'james-server-cassandra-rabbitmq-' + buildId
+        jamesCassandraRabbitMQLdap = 'james-server-cassandra-rabbitmq-ldap-' + buildId
+        jamesCassandraLdap = 'james-server-cassandra-ldap-' + buildId
+        jamesJPA = 'james-server-jpa-' + buildId
+        jamesJpaSample = 'james-server-jpa-sample-' + buildId
+        jamesJpaSampleForTesting = 'james-server-jpa-sample-testing' + buildId
+        jamesSpring = 'james-server-spring-' + buildId
+        gitPublish = 'git/publish-' + buildId
 
         images = [ jamesCompile, jamesCassandra, jamesCassandraRabbitMQ, jamesCassandraRabbitMQLdap, jamesCassandraLdap,
                     jamesJPA, jamesJpaSample, jamesJpaSampleForTesting, jamesSpring, gitPublish ]
+    }
+
+    def customDependenciesOrDefault(def node) {
+        Properties properties = fromFile(node, 'dockerfiles/run/dependencies.properties')
+
+        cassandra = properties."cassandra" ?: 'cassandra:3.11.3'
+        elasticSearch = properties."elasticSearch" ?: 'docker.elastic.co/elasticsearch/elasticsearch:6.3.2'
+        rabbitmq = properties."rabbitmq" ?: 'rabbitmq:3.7.7-management'
+        swift = properties."swift" ?: 'linagora/openstack-keystone-swift:pike'
+    }
+
+    def fromFile(def node, def file) {
+        if (!node.fileExists('dockerfiles/run/dependencies.properties')) {
+            node.echo "Using default dependencies"
+            return new Properties()
+        }
+
+        try {
+            Properties properties = new Properties()
+            properties.load(new StringReader(node.readFile(file)))
+            return properties
+        } catch (Exception e) {
+            node.echo "Exception occured while getting dependencies, using default values"
+            node.echo "${e}"
+            return new Properties()
+        }
     }
 
     def deleteAll = { node ->
@@ -163,46 +190,46 @@ class Images implements Serializable {
 }
 
 class Containers implements Serializable {
-    def keystore = 'keystore';
-    def keys = 'keys';
-    def cassandra;
-    def elasticSearch;
-    def rabbitmq;
-    def swift;
-    def integrationCassandraRabbitMQ;
-    def integrationCassandra;
-    def integrationJPA;
-    def integrationSpring;
-    def jamesCompile;
-    def jamesTest;
-    def jamesCassandra;
-    def jamesCassandraRabbitMQ;
-    def jamesCassandraLdap;
-    def jamesJPA;
-    def jamesJpaSampleForTesting;
-    def jamesSpring;
-    def gitPublish;
+    def keystore = 'keystore'
+    def keys = 'keys'
+    def cassandra
+    def elasticSearch
+    def rabbitmq
+    def swift
+    def integrationCassandraRabbitMQ
+    def integrationCassandra
+    def integrationJPA
+    def integrationSpring
+    def jamesCompile
+    def jamesTest
+    def jamesCassandra
+    def jamesCassandraRabbitMQ
+    def jamesCassandraLdap
+    def jamesJPA
+    def jamesJpaSampleForTesting
+    def jamesSpring
+    def gitPublish
 
-    def containers;
+    def containers
 
     Containers(String buildId) {
-        cassandra = 'cassandra-' + buildId;
-        elasticSearch = 'elasticSearch-' + buildId;
-        rabbitmq = 'rabbitmq-' + buildId;
-        swift = 'swift-' + buildId;
-        integrationCassandraRabbitMQ = 'integration-cassandra-rabbitmq-' + buildId;
-        integrationCassandra = 'integration-cassandra-' + buildId;
-        integrationJPA = 'integration-jpa-' + buildId;
-        integrationSpring = 'integration-spring-' + buildId;
-        jamesCompile = 'james-parent-compile-' + buildId;
-        jamesTest = 'james-parent-test-' + buildId;
-        jamesCassandra = 'james-server-cassandra-' + buildId;
-        jamesCassandraRabbitMQ = 'james-server-cassandra-rabbitmq-' + buildId;
-        jamesCassandraLdap = 'james-server-cassandra-ldap-' + buildId;
-        jamesJPA = 'james-server-jpa-' + buildId;
-        jamesJpaSampleForTesting = 'james-server-jpa-sample-testing' + buildId;
-        jamesSpring = 'james-server-spring-' + buildId;
-        gitPublish = 'git-publish-' + buildId;
+        cassandra = 'cassandra-' + buildId
+        elasticSearch = 'elasticSearch-' + buildId
+        rabbitmq = 'rabbitmq-' + buildId
+        swift = 'swift-' + buildId
+        integrationCassandraRabbitMQ = 'integration-cassandra-rabbitmq-' + buildId
+        integrationCassandra = 'integration-cassandra-' + buildId
+        integrationJPA = 'integration-jpa-' + buildId
+        integrationSpring = 'integration-spring-' + buildId
+        jamesCompile = 'james-parent-compile-' + buildId
+        jamesTest = 'james-parent-test-' + buildId
+        jamesCassandra = 'james-server-cassandra-' + buildId
+        jamesCassandraRabbitMQ = 'james-server-cassandra-rabbitmq-' + buildId
+        jamesCassandraLdap = 'james-server-cassandra-ldap-' + buildId
+        jamesJPA = 'james-server-jpa-' + buildId
+        jamesJpaSampleForTesting = 'james-server-jpa-sample-testing' + buildId
+        jamesSpring = 'james-server-spring-' + buildId
+        gitPublish = 'git-publish-' + buildId
 
         containers = [ cassandra, elasticSearch, rabbitmq, swift, integrationCassandraRabbitMQ, integrationCassandra, integrationJPA,
                         integrationSpring, jamesCompile, jamesTest, jamesCassandra, jamesCassandraRabbitMQ, jamesCassandraLdap, jamesJPA,
@@ -216,17 +243,17 @@ class Containers implements Serializable {
 
 class Command {
 
-    private final String command;
+    private final String command
 
     Command(String command) {
-        this.command = command;
+        this.command = command
     }
 
     def execute = { node ->
         try {
             node.sh "${command}"
         } catch (Exception e) {
-            e.printStackTrace();
+            e.printStackTrace()
         }
     }
 }
@@ -262,7 +289,7 @@ def version() {
 }
 
 def waitForCommandSuccess(command, maxRetries) {
-    def tries = 0;
+    def tries = 0
     while (tries++ < maxRetries) {
         try {
             sh command
@@ -292,31 +319,31 @@ def flows = [:]
 
 def sha1OrBranch = {
     if (sha1 == null) {
-        return "${workingBranch}";
+        return "${workingBranch}"
     }
-    return sha1;
+    return sha1
 }
 
 def isMaster = {
-    return sha1OrBranch() == 'master';
+    return sha1OrBranch() == 'master'
 }
 
 def isBranch = {
-    return sha1 == null;
+    return sha1 == null
 }
 
 def isTag = {
-    return tagName != null;
+    return tagName != null
 }
 
 def tag = {
     if (isTag()) {
-        return "${tagName}";
+        return "${tagName}"
     }
     if (isMaster()) {
-        return "latest";
+        return "latest"
     }
-    return "${workingBranch}";
+    return "${workingBranch}"
 }
 
 dockerTag = tag()
@@ -326,11 +353,11 @@ dockerPassword = System.getenv("DOCKER_PASSWORD")
 gitlabToken = System.getenv("GITLAB_TOKEN")
 
 def publishToDocker = {
-    return (isBranch() || isTag()) && dockerUser != null;
+    return (isBranch() || isTag()) && dockerUser != null
 }
 
 def partialBuild = {
-    return !isBranch() && !isMaster();
+    return !isBranch() && !isMaster()
 }
 
 def partialBuildEnvFunction = {
@@ -339,21 +366,21 @@ def partialBuildEnvFunction = {
             return "--env 'JAMES_PARTIAL_BUILD_BASE_BRANCH=origin/master' --env 'MVN_ADDITIONAL_ARG_LINE=-Ppartial-build"
         }
     }
-    return "";
+    return ""
 }
 
-partialBuildEnv = partialBuildEnvFunction();
+partialBuildEnv = partialBuildEnvFunction()
 
 def packageOnGitlab = {
-    return isMaster() && gitlabToken != null;
+    return isMaster() && gitlabToken != null
 }
 
 def isAlive(dockerContainer) {
     try {
         sh "docker inspect -f '{{.State.Status}}' ${dockerContainer} | grep running"
-        return true;
+        return true
     } catch (Exception e) {
-        return false;
+        return false
     }
 }
 
@@ -369,72 +396,72 @@ def containerIp(dockerContainer) {
 // Define main variables
 buildId = "${workingBranch.toLowerCase()}-${UUID.randomUUID()}"
 mergeBranch = "MERGE-${buildId}"
-images = new Images(buildId);
-containers = new Containers(buildId);
+containers = new Containers(buildId)
 jamesLinks = "--link ${containers.cassandra}:cassandra --link ${containers.elasticSearch}:elasticsearch"
 rabbitmqSwiftLinks = "--link ${containers.rabbitmq}:rabbitmq --link ${containers.swift}:swift"
 
 sha1ToBuild = sha1OrBranch()
 verbose = "-a stdout -a stderr"
 
-statuses = new CommitStatuses();
-commitStatusFactory = new CommitStatusFactory(repoName, sha1);
-merging = commitStatusFactory.from("Merging");
-statuses.addPendingStatus(merging);
+statuses = new CommitStatuses()
+commitStatusFactory = new CommitStatusFactory(repoName, sha1)
+merging = commitStatusFactory.from("Merging")
+statuses.addPendingStatus(merging)
 
-buildingJava8 = commitStatusFactory.from("Building java 8");
-statuses.addPendingStatus(buildingJava8);
+buildingJava8 = commitStatusFactory.from("Building java 8")
+statuses.addPendingStatus(buildingJava8)
 
-testingJava8 = commitStatusFactory.from("Testing java 8");
-statuses.addPendingStatus(testingJava8);
+testingJava8 = commitStatusFactory.from("Testing java 8")
+statuses.addPendingStatus(testingJava8)
 
-dockeringGuiceCassandraRabbitMQLdap = commitStatusFactory.from("Dockering Guice Cassandra + RabbitMQ + Swift + Ldap");
-statuses.addPendingStatus(dockeringGuiceCassandraRabbitMQLdap);
-dockeringGuiceCassandraRabbitMQ = commitStatusFactory.from("Dockering Guice Cassandra + RabbitMQ + Swift");
-statuses.addPendingStatus(dockeringGuiceCassandraRabbitMQ);
-dockeringGuiceCassandra = commitStatusFactory.from("Dockering Guice Cassandra");
-statuses.addPendingStatus(dockeringGuiceCassandra);
-dockeringGuiceJPA = commitStatusFactory.from("Dockering Guice JPA");
-statuses.addPendingStatus(dockeringGuiceJPA);
-dockeringSpringJPA = commitStatusFactory.from("Dockering Spring JPA");
-statuses.addPendingStatus(dockeringSpringJPA);
-dockeringGuiceCassandraLdap = commitStatusFactory.from("Building Guice Cassandra/Ldap");
-statuses.addPendingStatus(dockeringGuiceCassandraLdap);
-dockeringGuiceJPASampleTesting = commitStatusFactory.from("Dockering Guice JPA with data provision");
-statuses.addPendingStatus(dockeringGuiceJPASampleTesting);
+dockeringGuiceCassandraRabbitMQLdap = commitStatusFactory.from("Dockering Guice Cassandra + RabbitMQ + Swift + Ldap")
+statuses.addPendingStatus(dockeringGuiceCassandraRabbitMQLdap)
+dockeringGuiceCassandraRabbitMQ = commitStatusFactory.from("Dockering Guice Cassandra + RabbitMQ + Swift")
+statuses.addPendingStatus(dockeringGuiceCassandraRabbitMQ)
+dockeringGuiceCassandra = commitStatusFactory.from("Dockering Guice Cassandra")
+statuses.addPendingStatus(dockeringGuiceCassandra)
+dockeringGuiceJPA = commitStatusFactory.from("Dockering Guice JPA")
+statuses.addPendingStatus(dockeringGuiceJPA)
+dockeringSpringJPA = commitStatusFactory.from("Dockering Spring JPA")
+statuses.addPendingStatus(dockeringSpringJPA)
+dockeringGuiceCassandraLdap = commitStatusFactory.from("Building Guice Cassandra/Ldap")
+statuses.addPendingStatus(dockeringGuiceCassandraLdap)
+dockeringGuiceJPASampleTesting = commitStatusFactory.from("Dockering Guice JPA with data provision")
+statuses.addPendingStatus(dockeringGuiceJPASampleTesting)
 
-deployingGuiceCassandraRabbitMQ = commitStatusFactory.from("Deploying Guice Cassandra + RabbitMQ + Swift");
-statuses.addPendingStatus(deployingGuiceCassandraRabbitMQ);
-deployingGuiceCassandra = commitStatusFactory.from("Deploying Guice Cassandra");
-statuses.addPendingStatus(deployingGuiceCassandra);
-deployingGuiceJPA = commitStatusFactory.from("Deploying Guice JPA");
-statuses.addPendingStatus(deployingGuiceJPA);
-deployingSpringJPA = commitStatusFactory.from("Deploying Spring JPA");
-statuses.addPendingStatus(deployingSpringJPA);
-deployingGuiceJPASampleTesting = commitStatusFactory.from("Deploying Guice JPA with data provision");
-statuses.addPendingStatus(deployingGuiceJPASampleTesting);
+deployingGuiceCassandraRabbitMQ = commitStatusFactory.from("Deploying Guice Cassandra + RabbitMQ + Swift")
+statuses.addPendingStatus(deployingGuiceCassandraRabbitMQ)
+deployingGuiceCassandra = commitStatusFactory.from("Deploying Guice Cassandra")
+statuses.addPendingStatus(deployingGuiceCassandra)
+deployingGuiceJPA = commitStatusFactory.from("Deploying Guice JPA")
+statuses.addPendingStatus(deployingGuiceJPA)
+deployingSpringJPA = commitStatusFactory.from("Deploying Spring JPA")
+statuses.addPendingStatus(deployingSpringJPA)
+deployingGuiceJPASampleTesting = commitStatusFactory.from("Deploying Guice JPA with data provision")
+statuses.addPendingStatus(deployingGuiceJPASampleTesting)
 
-testingGuiceCassandraRabbitMQ = commitStatusFactory.from("Integrating Guice Cassandra  + RabbitMQ + Swift");
-statuses.addPendingStatus(testingGuiceCassandraRabbitMQ);
-testingGuiceCassandra = commitStatusFactory.from("Integrating Guice Cassandra");
-statuses.addPendingStatus(testingGuiceCassandra);
-testingGuiceJPA = commitStatusFactory.from("Integrating Guice JPA");
-statuses.addPendingStatus(testingGuiceJPA);
-testingSpringJPA = commitStatusFactory.from("Integrating Spring JPA");
-statuses.addPendingStatus(testingSpringJPA);
+testingGuiceCassandraRabbitMQ = commitStatusFactory.from("Integrating Guice Cassandra  + RabbitMQ + Swift")
+statuses.addPendingStatus(testingGuiceCassandraRabbitMQ)
+testingGuiceCassandra = commitStatusFactory.from("Integrating Guice Cassandra")
+statuses.addPendingStatus(testingGuiceCassandra)
+testingGuiceJPA = commitStatusFactory.from("Integrating Guice JPA")
+statuses.addPendingStatus(testingGuiceJPA)
+testingSpringJPA = commitStatusFactory.from("Integrating Spring JPA")
+statuses.addPendingStatus(testingSpringJPA)
 
-publishing;
+publishing
 deployAndValidatingBuilder = [:]
 if (publishToDocker()) {
-    publishing = commitStatusFactory.from("Publishing");
-    statuses.addPendingStatus(publishing);
+    publishing = commitStatusFactory.from("Publishing")
+    statuses.addPendingStatus(publishing)
 }
-packagingTrigger;
+packagingTrigger
 if (packageOnGitlab()) {
-    packagingTrigger = commitStatusFactory.from("Triggering packaging");
-    statuses.addPendingStatus(packagingTrigger);
+    packagingTrigger = commitStatusFactory.from("Triggering packaging")
+    statuses.addPendingStatus(packagingTrigger)
 }
 rabbitMQProductExists = false
+images = null
 flows["${sha1}"] = {
 
     stage "Build"
@@ -442,11 +469,11 @@ flows["${sha1}"] = {
         ws("/home/jenkins/build/workspace/${env.BUILD_NUMBER}") {
             try {
                 if (isTag()) {
-                    buildVolumeFromTag()
+                    buildVolumeFromTag(this)
                 } else {
-                    merge()
+                    merge(this)
                 }
-                merging.success();
+                merging.success()
                 rabbitMQProductExists = fileExists 'dockerfiles/run/guice/cassandra-rabbitmq-ldap'
 
                 compile()
@@ -472,34 +499,40 @@ flows["${sha1}"] = {
                     wrap([$class: 'MaskPasswordsBuildWrapper', varPasswordPairs: [[password: "${gitlabToken}", var: 'gitlabToken']]]) {
                         sh "curl -X POST -Ftoken=${gitlabToken} -F'ref=master' -F'variables[REPO_NAME]=oncommit' -F'variables[SOURCE_REPO]=https://github.com/linagora/james-project' https://ci.linagora.com/api/v4/projects/803/trigger/pipeline"
                     }
-                    packagingTrigger.success();
+                    packagingTrigger.success()
                 }
             } finally {
                 containers.deleteAll(this)
-                images.deleteAll(this)
+                images?.deleteAll(this)
             }
         }
     }
-    statuses.failPendingStatuses();
+    statuses.failPendingStatuses()
 }
 
 parallel flows
 
 jamesVersion = ""
-def merge() {
+def merge(def node) {
     git url: authorParentURL, branch: branch
     sh "git fetch origin"
     sh "git checkout ${branch}"
     jamesVersion = version()
+    images = new Images(buildId)
+    images.customDependenciesOrDefault(node)
+
     sh "docker build --tag ${images.gitPublish} -f dockerfiles/merge/Dockerfile ."
     sh "docker run ${verbose} -t --name ${containers.gitPublish} -v /origin ${images.gitPublish} ${sha1ToBuild} ${mergeBranch} ${originalBranch}"
 }
 
-def buildVolumeFromTag() {
+def buildVolumeFromTag(def node) {
     git url: authorParentURL, branch: "master"
     sh "git fetch --tags origin"
     sh "git checkout ${tagName} -b ${mergeBranch}"
     jamesVersion = version()
+    images = new Images(buildId)
+    images.customDependenciesOrDefault(node)
+
     def dockerfile = """\
                         FROM debian:8.11
                         
@@ -522,10 +555,10 @@ def compile() {
     def testNameDefinitions = "--name=${containers.jamesTest}"
 
     sh "cd dockerfiles/; docker run ${verbose} ${tmpfsOptions} --volumes-from=${containers.gitPublish} ${compileNameDefinitions} --env 'MVN_ADDITIONAL_ARG_LINE=-T 1C' ${images.jamesCompile} -s ${mergeBranch}"
-    buildingJava8.success();
+    buildingJava8.success()
 
     sh "cd dockerfiles/; docker run ${verbose} ${tmpfsOptions} ${allVolumes} ${testNameDefinitions} ${partialBuildEnv} ${images.jamesCompile} ${mergeBranch}"
-    testingJava8.success();
+    testingJava8.success()
 }
 
 def deployGuiceCassandra() {
@@ -544,8 +577,8 @@ def deployGuiceCassandra() {
     }
     dockeringGuiceCassandraRabbitMQLdap.success()
     dockeringGuiceCassandraRabbitMQ.success()
-    deployingGuiceCassandraRabbitMQ.success();
-    testingGuiceCassandraRabbitMQ.success();
+    deployingGuiceCassandraRabbitMQ.success()
+    testingGuiceCassandraRabbitMQ.success()
 
     sh "cd dockerfiles/run/guice/cassandra; docker cp ${containers.keystore}:${keystorePath} destination/conf"
     sh "cd dockerfiles/run/guice/cassandra; docker cp ${containers.jamesTest}:${jarPathCassandra} destination"
@@ -574,7 +607,7 @@ def deployGuiceCassandra() {
         sh "docker logs ${containers.jamesCassandra}"
     }
 
-    deployingGuiceCassandra.success();
+    deployingGuiceCassandra.success()
 }
 
 def deployGuiceRabbitMQ() {
@@ -623,7 +656,7 @@ def testGuiceCassandra() {
     def jamesCassandraIp = containerIp("${containers.jamesCassandra}")
     sh "docker run ${verbose} --name=${containers.integrationCassandra} --entrypoint=\"/root/integration_tests.sh\" --volumes-from=${containers.gitPublish} ${images.jamesCompile} ${jamesCassandraIp} ${IMAP_PORT} ${SMTP_PORT} ${sha1ToBuild}"
 
-    testingGuiceCassandra.success();
+    testingGuiceCassandra.success()
 }
 
 def deployGuiceJPA() {
@@ -646,7 +679,7 @@ def deployGuiceJPA() {
         sh "docker logs ${containers.jamesJPA}"
     }
 
-    deployingGuiceJPA.success();
+    deployingGuiceJPA.success()
 }
 
 def testGuiceJPA() {
@@ -656,7 +689,7 @@ def testGuiceJPA() {
     def jamesJPAIp = containerIp("${containers.jamesJPA}")
     sh "docker run ${verbose} --name=${containers.integrationJPA} --entrypoint=\"/root/integration_tests.sh\" --volumes-from=${containers.gitPublish} ${images.jamesCompile} ${jamesJPAIp} ${IMAP_PORT} ${SMTP_PORT} ${sha1ToBuild}"
 
-    testingGuiceJPA.success();
+    testingGuiceJPA.success()
 }
 
 jamesCliWithOptionsSpring = ""
@@ -679,7 +712,7 @@ def deploySpringJPA() {
     } catch (Exception e) {
         sh "docker logs ${containers.jamesSpring}"
     }
-    deployingSpringJPA.success();
+    deployingSpringJPA.success()
 }
 
 def testSpringJPA() {
@@ -689,7 +722,7 @@ def testSpringJPA() {
     def jamesSpringIp = containerIp("${containers.jamesSpring}")
     sh "docker run ${verbose} --name=${containers.integrationSpring} --entrypoint=\"/root/integration_tests.sh\" --volumes-from=${containers.gitPublish} ${images.jamesCompile} ${jamesSpringIp} ${IMAP_PORT} ${SMTP_PORT} ${sha1ToBuild}"
 
-    testingSpringJPA.success();
+    testingSpringJPA.success()
 }
 
 def buildGuiceCassandraLdap() {
@@ -722,7 +755,7 @@ def deployGuiceJPASample() {
 
     sh "cd dockerfiles/run/guice/provisioned; rm NewDockerfile"
 
-    deployingGuiceJPASampleTesting.success();
+    deployingGuiceJPASampleTesting.success()
 }
 
 def publish() {
@@ -755,5 +788,5 @@ def publish() {
         sh "docker push linagora/james-rabbitmq-project:${dockerTag}"
     }
 
-    publishing.success();
+    publishing.success()
 }
