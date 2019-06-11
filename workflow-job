@@ -475,6 +475,7 @@ if (packageOnGitlab()) {
     statuses.addPendingStatus(packagingTrigger)
 }
 rabbitMQProductExists = false
+memoryProductExists = false
 images = null
 flows["${sha1}"] = {
 
@@ -489,6 +490,7 @@ flows["${sha1}"] = {
                 }
                 merging.success()
                 rabbitMQProductExists = fileExists 'dockerfiles/run/guice/cassandra-rabbitmq-ldap'
+                memoryProductExists = fileExists 'dockerfiles/run/guice/memory'
 
                 compile()
 
@@ -501,8 +503,10 @@ flows["${sha1}"] = {
                 deploySpringJPA()
                 testSpringJPA()
 
-                deployMemory()
-                testMemory()
+                if (memoryProductExists) {
+                    deployMemory()
+                    testMemory()
+                }
 
                 buildGuiceCassandraLdap()
 
@@ -825,8 +829,10 @@ def publish() {
     sh "docker tag ${images.jamesCassandraLdap} linagora/james-ldap-project:${dockerTag}"
     sh "docker push linagora/james-ldap-project:${dockerTag}"
 
-    sh "docker tag ${images.jamesMemory} linagora/james-memory:${dockerTag}"
-    sh "docker push linagora/james-memory:${dockerTag}"
+    if (memoryProductExists) {
+        sh "docker tag ${images.jamesMemory} linagora/james-memory:${dockerTag}"
+        sh "docker push linagora/james-memory:${dockerTag}"
+    }
 
     sh "cd dockerfiles/run/guice/provisioned; docker build --tag=${images.jamesJpaSample} ."
 
