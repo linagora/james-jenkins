@@ -287,6 +287,11 @@ libPathJPA = '/jpa/destination/james-server-jpa-guice.lib'
 cliJarPathJPA = '/jpa/destination/james-server-cli.jar'
 clilibPathJPA = '/jpa/destination/james-server-cli.lib'
 
+jarPathMemory = '/memory/destination/james-server-memory-guice.jar'
+libPathMemory = '/memory/destination/james-server-memory-guice.lib'
+cliJarPathMemory = '/memory/destination/james-server-cli.jar'
+clilibPathMemory = '/memory/destination/james-server-cli.lib'
+
 keystorePath = '/keys/keystore'
 jamesCliWithOptions = 'java -jar /root/james-cli.jar -h 127.0.0.1'
 
