@@ -604,7 +604,6 @@ def deployGuiceCassandra() {
     dockeringGuiceCassandraRabbitMQLdap.success()
     dockeringGuiceCassandraRabbitMQ.success()
     deployingGuiceCassandraRabbitMQ.success()
-    testingGuiceCassandraRabbitMQ.success()
 
     sh "cd dockerfiles/run/guice/cassandra; docker cp ${containers.keystore}:${keystorePath} destination/conf"
     sh "cd dockerfiles/run/guice/cassandra; docker cp ${containers.jamesTest}:${jarPathCassandra} destination"
@@ -672,7 +671,15 @@ def testGuiceRabbitMQ() {
 
     echo "Running integration tests on Cassandra + RabbitMQ + Swift on ${buildId}"
     def jamesCassandraRabbitMQIp = containerIp("${containers.jamesCassandraRabbitMQ}")
-    sh "docker run ${verbose} --name=${containers.integrationCassandraRabbitMQ} --entrypoint=\"/root/integration_tests.sh\" --volumes-from=${containers.gitPublish} ${images.jamesCompile} ${jamesCassandraRabbitMQIp} ${IMAP_PORT} ${SMTP_PORT} ${sha1ToBuild}"
+    try {
+        sh "docker run ${verbose} --name=${containers.integrationCassandraRabbitMQ} --entrypoint=\"/root/integration_tests.sh\" --volumes-from=${containers.gitPublish} ${images.jamesCompile} ${jamesCassandraRabbitMQIp} ${IMAP_PORT} ${SMTP_PORT} ${sha1ToBuild}"
+        testingGuiceCassandraRabbitMQ.success()
+    } catch(Exception e) {
+        echo "Failure while running Distributed Guice deployment tests"
+        testingGuiceCassandraRabbitMQ.failure()
+        sh "docker logs ${containers.jamesCassandraRabbitMQ}"
+        throw e;
+    }
 }
 
 def testGuiceCassandra() {
@@ -680,9 +687,15 @@ def testGuiceCassandra() {
 
     echo "Running integration tests on Cassandra on ${buildId}"
     def jamesCassandraIp = containerIp("${containers.jamesCassandra}")
-    sh "docker run ${verbose} --name=${containers.integrationCassandra} --entrypoint=\"/root/integration_tests.sh\" --volumes-from=${containers.gitPublish} ${images.jamesCompile} ${jamesCassandraIp} ${IMAP_PORT} ${SMTP_PORT} ${sha1ToBuild}"
-
-    testingGuiceCassandra.success()
+    try {
+        sh "docker run ${verbose} --name=${containers.integrationCassandra} --entrypoint=\"/root/integration_tests.sh\" --volumes-from=${containers.gitPublish} ${images.jamesCompile} ${jamesCassandraIp} ${IMAP_PORT} ${SMTP_PORT} ${sha1ToBuild}"
+        testingGuiceCassandra.success()
+    } catch (Exception e) {
+        echo "Failure while running Cassandra Guice deployment tests"
+        sh "docker logs ${containers.jamesCassandra}"
+        testingGuiceCassandra.failure()
+        throw e;
+    }
 }
 
 def deployGuiceJPA() {
@@ -713,9 +726,15 @@ def testGuiceJPA() {
 
     echo "Running integration tests on JPA on ${buildId}"
     def jamesJPAIp = containerIp("${containers.jamesJPA}")
-    sh "docker run ${verbose} --name=${containers.integrationJPA} --entrypoint=\"/root/integration_tests.sh\" --volumes-from=${containers.gitPublish} ${images.jamesCompile} ${jamesJPAIp} ${IMAP_PORT} ${SMTP_PORT} ${sha1ToBuild}"
-
-    testingGuiceJPA.success()
+    try {
+        sh "docker run ${verbose} --name=${containers.integrationJPA} --entrypoint=\"/root/integration_tests.sh\" --volumes-from=${containers.gitPublish} ${images.jamesCompile} ${jamesJPAIp} ${IMAP_PORT} ${SMTP_PORT} ${sha1ToBuild}"
+        testingGuiceJPA.success()
+    } catch (Exception e) {
+        echo "Failure while running JPA Guice deployment tests"
+        sh "docker logs ${containers.jamesJPA}"
+        testingGuiceJPA.failure()
+        throw e;
+    }
 }
 
 jamesCliWithOptionsSpring = ""
@@ -746,9 +765,15 @@ def testSpringJPA() {
 
     echo "Running integration tests on ${buildId}"
     def jamesSpringIp = containerIp("${containers.jamesSpring}")
-    sh "docker run ${verbose} --name=${containers.integrationSpring} --entrypoint=\"/root/integration_tests.sh\" --volumes-from=${containers.gitPublish} ${images.jamesCompile} ${jamesSpringIp} ${IMAP_PORT} ${SMTP_PORT} ${sha1ToBuild}"
-
-    testingSpringJPA.success()
+    try{
+        sh "docker run ${verbose} --name=${containers.integrationSpring} --entrypoint=\"/root/integration_tests.sh\" --volumes-from=${containers.gitPublish} ${images.jamesCompile} ${jamesSpringIp} ${IMAP_PORT} ${SMTP_PORT} ${sha1ToBuild}"
+        testingSpringJPA.success()
+    } catch (Exception e) {
+        echo "Failure while running JPA Spring deployment tests"
+        sh "docker logs ${containers.jamesSpring}"
+        testingSpringJPA.failure()
+        throw e;
+    }
 }
 
 def deployMemory() {
@@ -779,9 +804,16 @@ def testMemory() {
 
     echo "Running integration tests on Memory on ${buildId}"
     def jamesMemoryIp = containerIp("${containers.jamesMemory}")
-    sh "docker run ${verbose} --name=${containers.integrationMemory} --entrypoint=\"/root/integration_tests.sh\" --volumes-from=${containers.gitPublish} ${images.jamesCompile} ${jamesMemoryIp} ${IMAP_PORT} ${SMTP_PORT} ${sha1ToBuild}"
+    try {
+        sh "docker run ${verbose} --name=${containers.integrationMemory} --entrypoint=\"/root/integration_tests.sh\" --volumes-from=${containers.gitPublish} ${images.jamesCompile} ${jamesMemoryIp} ${IMAP_PORT} ${SMTP_PORT} ${sha1ToBuild}"
+        testingMemory.success()
+    } catch (Exception e) {
+        echo "Failure while running Memory Guice deployment tests"
+        sh "docker logs ${containers.jamesMemory}"
+        testingMemory.failure()
+        throw e;
 
-    testingMemory.success()
+    }
 }
 
 def buildGuiceCassandraLdap() {
