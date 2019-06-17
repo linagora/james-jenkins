@@ -276,28 +276,18 @@ libPathCassandra = pathInDestination(productCassandra, 'james-server-cassandra-g
 
 jarPathCassandraLdap = pathInDestination(productCassandra, 'james-server-cassandra-ldap-guice.jar')
 libPathCassandraLdap = pathInDestination(productCassandra, 'james-server-cassandra-ldap-guice.lib')
-cliJarPathCassandra = getCliJarPath(productCassandra)
-clilibPathCassandra = getCliLibPath(productCassandra)
 
 jarPathCassandraRabbitMQ = pathInDestination(productCassandraRabbitMQ, 'james-server-cassandra-rabbitmq-guice.jar')
 libPathCassandraRabbitMQ = pathInDestination(productCassandraRabbitMQ, 'james-server-cassandra-rabbitmq-guice.lib')
-cliJarPathCassandraRabbitMQ = getCliJarPath(productCassandraRabbitMQ)
-clilibPathCassandraRabbitMQ = getCliLibPath(productCassandraRabbitMQ)
 
 jarPathCassandraRabbitMQLdap = pathInDestination(productCassandraRabbitMQLdap, 'james-server-cassandra-rabbitmq-ldap-guice.jar')
 libPathCassandraRabbitMQLdap = pathInDestination(productCassandraRabbitMQLdap, 'james-server-cassandra-rabbitmq-ldap-guice.lib')
-cliJarPathCassandraRabbitMQLdap = getCliJarPath(productCassandraRabbitMQLdap)
-clilibPathCassandraRabbitMQLdap = getCliLibPath(productCassandraRabbitMQLdap)
 
 jarPathJPA = pathInDestination(productJPA, 'james-server-jpa-guice.jar')
 libPathJPA = pathInDestination(productJPA, 'james-server-jpa-guice.lib')
-cliJarPathJPA = getCliJarPath(productJPA)
-clilibPathJPA = getCliLibPath(productJPA)
 
 jarPathMemory = pathInDestination(productMemory, 'james-server-memory-guice.jar')
 libPathMemory = pathInDestination(productMemory, 'james-server-memory-guice.lib')
-cliJarPathMemory = getCliJarPath(productMemory)
-clilibPathMemory = getCliLibPath(productMemory)
 
 private getCliJarPath(productMemory) {
     pathInDestination(productMemory, 'james-server-cli.jar')
@@ -606,6 +596,15 @@ def compile() {
     testingJava8.success()
 }
 
+def copyFilesFromCompilationContainer(product, jarPath, libPath) {
+    sh "cd dockerfiles/run/guice/$product; docker cp ${containers.keystore}:${keystorePath} destination/conf"
+    sh "cd dockerfiles/run/guice/$product; docker cp ${containers.jamesTest}:$jarPath destination"
+    sh "cd dockerfiles/run/guice/$product; docker cp ${containers.jamesTest}:$libPath destination"
+    sh "cd dockerfiles/run/guice/$product; docker cp ${containers.jamesTest}:${getCliJarPath(product)} destination"
+    sh "cd dockerfiles/run/guice/$product; docker cp ${containers.jamesTest}:${getCliLibPath(product)} destination"
+
+}
+
 def deployGuiceCassandra() {
     // Start common dependencies
     sh "docker run --detach=true --name=${containers.cassandra} ${images.cassandra}"
@@ -625,11 +624,7 @@ def deployGuiceCassandra() {
     deployingGuiceCassandraRabbitMQ.success()
     testingGuiceCassandraRabbitMQ.success()
 
-    sh "cd dockerfiles/run/guice/cassandra; docker cp ${containers.keystore}:${keystorePath} destination/conf"
-    sh "cd dockerfiles/run/guice/cassandra; docker cp ${containers.jamesTest}:${jarPathCassandra} destination"
-    sh "cd dockerfiles/run/guice/cassandra; docker cp ${containers.jamesTest}:${libPathCassandra} destination"
-    sh "cd dockerfiles/run/guice/cassandra; docker cp ${containers.jamesTest}:${cliJarPathCassandra} destination"
-    sh "cd dockerfiles/run/guice/cassandra; docker cp ${containers.jamesTest}:${clilibPathCassandra} destination"
+    copyFilesFromCompilationContainer(productCassandra, jarPathCassandra, libPathCassandra)
     sh "cd dockerfiles/run/guice/cassandra; docker build --tag=${images.jamesCassandra} ."
     dockeringGuiceCassandra.success()
 
@@ -657,20 +652,12 @@ def deployGuiceCassandra() {
 
 def deployGuiceRabbitMQ() {
     //Dockering Guice Server with Cassandra + RabbitMQ + Swift + Ldap
-    sh "cd dockerfiles/run/guice/cassandra-rabbitmq-ldap; docker cp ${containers.keystore}:${keystorePath} destination/conf"
-    sh "cd dockerfiles/run/guice/cassandra-rabbitmq-ldap; docker cp ${containers.jamesTest}:${jarPathCassandraRabbitMQLdap} destination"
-    sh "cd dockerfiles/run/guice/cassandra-rabbitmq-ldap; docker cp ${containers.jamesTest}:${libPathCassandraRabbitMQLdap} destination"
-    sh "cd dockerfiles/run/guice/cassandra-rabbitmq-ldap; docker cp ${containers.jamesTest}:${cliJarPathCassandraRabbitMQLdap} destination"
-    sh "cd dockerfiles/run/guice/cassandra-rabbitmq-ldap; docker cp ${containers.jamesTest}:${clilibPathCassandraRabbitMQLdap} destination"
+    copyFilesFromCompilationContainer(productCassandraRabbitMQLdap, jarPathCassandraRabbitMQLdap, libPathCassandraRabbitMQLdap)
 
     sh "cd dockerfiles/run/guice/cassandra-rabbitmq-ldap; docker build --tag=${images.jamesCassandraRabbitMQLdap} ."
 
     //Deploying Guice Server with Cassandra + RabbitMQ + Swift
-    sh "cd dockerfiles/run/guice/cassandra-rabbitmq; docker cp ${containers.keystore}:${keystorePath} destination/conf"
-    sh "cd dockerfiles/run/guice/cassandra-rabbitmq; docker cp ${containers.jamesTest}:${jarPathCassandraRabbitMQ} destination"
-    sh "cd dockerfiles/run/guice/cassandra-rabbitmq; docker cp ${containers.jamesTest}:${libPathCassandraRabbitMQ} destination"
-    sh "cd dockerfiles/run/guice/cassandra-rabbitmq; docker cp ${containers.jamesTest}:${cliJarPathCassandraRabbitMQ} destination"
-    sh "cd dockerfiles/run/guice/cassandra-rabbitmq; docker cp ${containers.jamesTest}:${clilibPathCassandraRabbitMQ} destination"
+    copyFilesFromCompilationContainer(productCassandraRabbitMQ, jarPathCassandraRabbitMQ, libPathCassandraRabbitMQ)
     sh "docker run --detach=true --name=${containers.rabbitmq} ${images.rabbitmq}"
     sh "docker run --detach=true --name=${containers.swift} ${images.swift}"
 
@@ -705,12 +692,7 @@ def testGuiceCassandra() {
 }
 
 def deployGuiceJPA() {
-    sh "cd dockerfiles/run/guice/jpa; docker cp ${containers.keystore}:${keystorePath} destination/conf"
-    sh "cd dockerfiles/run/guice/jpa; docker cp ${containers.jamesTest}:${jarPathJPA} destination"
-    sh "cd dockerfiles/run/guice/jpa; docker cp ${containers.jamesTest}:${libPathJPA} destination"
-    sh "cd dockerfiles/run/guice/jpa; docker cp ${containers.jamesTest}:${cliJarPathJPA} destination"
-    sh "cd dockerfiles/run/guice/jpa; docker cp ${containers.jamesTest}:${clilibPathJPA} destination"
-
+    copyFilesFromCompilationContainer(productJPA, jarPathJPA, libPathJPA)
     sh "cd dockerfiles/run/guice/jpa; docker build --tag=${images.jamesJPA} ."
 
     dockeringGuiceJPA.success()
@@ -771,12 +753,7 @@ def testSpringJPA() {
 }
 
 def deployMemory() {
-    sh "cd dockerfiles/run/guice/memory; docker cp ${containers.keystore}:${keystorePath} destination/conf"
-    sh "cd dockerfiles/run/guice/memory; docker cp ${containers.jamesTest}:${jarPathMemory} destination"
-    sh "cd dockerfiles/run/guice/memory; docker cp ${containers.jamesTest}:${libPathMemory} destination"
-    sh "cd dockerfiles/run/guice/memory; docker cp ${containers.jamesTest}:${cliJarPathMemory} destination"
-    sh "cd dockerfiles/run/guice/memory; docker cp ${containers.jamesTest}:${clilibPathMemory} destination"
-
+    copyFilesFromCompilationContainer(productMemory, jarPathMemory, libPathMemory)
     sh "cd dockerfiles/run/guice/memory; docker build --tag=${images.jamesMemory} ."
 
     dockeringMemory.success()
@@ -804,12 +781,7 @@ def testMemory() {
 }
 
 def buildGuiceCassandraLdap() {
-    sh "cd dockerfiles/run/guice/cassandra-ldap; docker cp ${containers.keystore}:${keystorePath} destination/conf"
-    sh "cd dockerfiles/run/guice/cassandra-ldap; docker cp ${containers.jamesTest}:${jarPathCassandraLdap} destination"
-    sh "cd dockerfiles/run/guice/cassandra-ldap; docker cp ${containers.jamesTest}:${libPathCassandraLdap} destination"
-    sh "cd dockerfiles/run/guice/cassandra-ldap; docker cp ${containers.jamesTest}:${cliJarPathCassandra} destination"
-    sh "cd dockerfiles/run/guice/cassandra-ldap; docker cp ${containers.jamesTest}:${clilibPathCassandra} destination"
-
+   copyFilesFromCompilationContainer(productCassandra, jarPathCassandraLdap, libPathCassandraLdap)
     sh "cd dockerfiles/run/guice/cassandra-ldap; docker build --tag=${images.jamesCassandraLdap} ."
 
     dockeringGuiceCassandraLdap.success()
