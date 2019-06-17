@@ -266,6 +266,7 @@ class Command {
 }
 
 productCassandra = 'cassandra'
+productCassandraLdap = '"cassandra-ldap"'
 productCassandraRabbitMQ = 'cassandra-rabbitmq'
 productCassandraRabbitMQLdap = 'cassandra-rabbitmq-ldap'
 productJPA = 'jpa'
@@ -295,6 +296,34 @@ private getCliJarPath(productMemory) {
 
 private getCliLibPath(product) {
     pathInDestination(product, 'james-server-cli.lib')
+}
+
+def runJamesScriptPath(product) {
+    pathInDestination(product, 'run_james.sh')
+}
+
+def glowrootPluginsPath(product) {
+    pathForGlowrootFile(product, 'plugins')
+}
+
+def glowrootJarPath(product) {
+    pathForGlowrootFile(product, 'glowroot.jar')
+}
+
+def glowrootCollectorJarPath(product) {
+    pathForGlowrootFile(product, 'lib/glowroot-embedded-collector.jar')
+}
+
+def glowrootLogginJarPath(product) {
+    pathForGlowrootFile(product, 'lib/glowroot-logging-logstash.jar')
+}
+
+def glowrootAdminJsonPath(product) {
+    pathForGlowrootFile(product, 'admin.json')
+}
+
+def pathForGlowrootFile(product, file) {
+    pathInDestination(product, "glowroot/$file")
 }
 
 def pathInDestination(product, file) {
@@ -597,11 +626,21 @@ def compile() {
 }
 
 def copyFilesFromCompilationContainer(product, jarPath, libPath) {
-    sh "cd dockerfiles/run/guice/$product; docker cp ${containers.keystore}:${keystorePath} destination/conf"
-    sh "cd dockerfiles/run/guice/$product; docker cp ${containers.jamesTest}:$jarPath destination"
-    sh "cd dockerfiles/run/guice/$product; docker cp ${containers.jamesTest}:$libPath destination"
-    sh "cd dockerfiles/run/guice/$product; docker cp ${containers.jamesTest}:${getCliJarPath(product)} destination"
-    sh "cd dockerfiles/run/guice/$product; docker cp ${containers.jamesTest}:${getCliLibPath(product)} destination"
+    copyFilesFromCompilationContainer(product, product, jarPath, libPath)
+}
+
+def copyFilesFromCompilationContainer(destinationProduct, sourceProduct, jarPath, libPath) {
+    sh "cd dockerfiles/run/guice/$destinationProduct; docker cp ${containers.keystore}:${keystorePath} destination/conf"
+    sh "cd dockerfiles/run/guice/$destinationProduct; docker cp ${containers.jamesTest}:$jarPath destination"
+    sh "cd dockerfiles/run/guice/$destinationProduct; docker cp ${containers.jamesTest}:$libPath destination"
+    sh "cd dockerfiles/run/guice/$destinationProduct; docker cp ${containers.jamesTest}:${getCliJarPath(sourceProduct)} destination"
+    sh "cd dockerfiles/run/guice/$destinationProduct; docker cp ${containers.jamesTest}:${getCliLibPath(sourceProduct)} destination"
+
+    sh "cd dockerfiles/run/guice; mkdir ${pathForGlowrootFile(destinationProduct, "lib")} || true"
+
+    sh "cd dockerfiles/run/guice/$destinationProduct; docker cp ${containers.jamesTest}:${glowrootJarPath(sourceProduct)} destination/glowroot || true"
+    sh "cd dockerfiles/run/guice/$destinationProduct; docker cp ${containers.jamesTest}:${glowrootCollectorJarPath(sourceProduct)} destination/glowroot/lib || true"
+    sh "cd dockerfiles/run/guice/$destinationProduct; docker cp ${containers.jamesTest}:${glowrootLogginJarPath(sourceProduct)} destination/glowroot/lib || true"
 
 }
 
@@ -781,7 +820,7 @@ def testMemory() {
 }
 
 def buildGuiceCassandraLdap() {
-   copyFilesFromCompilationContainer(productCassandra, jarPathCassandraLdap, libPathCassandraLdap)
+   copyFilesFromCompilationContainer(productCassandraLdap, productCassandra, jarPathCassandraLdap, libPathCassandraLdap)
     sh "cd dockerfiles/run/guice/cassandra-ldap; docker build --tag=${images.jamesCassandraLdap} ."
 
     dockeringGuiceCassandraLdap.success()
