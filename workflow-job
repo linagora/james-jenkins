@@ -265,32 +265,51 @@ class Command {
     }
 }
 
-jarPathCassandra = '/cassandra/destination/james-server-cassandra-guice.jar'
-libPathCassandra = '/cassandra/destination/james-server-cassandra-guice.lib'
-jarPathCassandraLdap = '/cassandra/destination/james-server-cassandra-ldap-guice.jar'
-libPathCassandraLdap = '/cassandra/destination/james-server-cassandra-ldap-guice.lib'
-cliJarPathCassandra = '/cassandra/destination/james-server-cli.jar'
-clilibPathCassandra = '/cassandra/destination/james-server-cli.lib'
+productCassandra = 'cassandra'
+productCassandraRabbitMQ = 'cassandra-rabbitmq'
+productCassandraRabbitMQLdap = 'cassandra-rabbitmq-ldap'
+productJPA = 'jpa'
+productMemory = 'memory'
 
-jarPathCassandraRabbitMQ = '/cassandra-rabbitmq/destination/james-server-cassandra-rabbitmq-guice.jar'
-libPathCassandraRabbitMQ = '/cassandra-rabbitmq/destination/james-server-cassandra-rabbitmq-guice.lib'
-cliJarPathCassandraRabbitMQ = '/cassandra-rabbitmq/destination/james-server-cli.jar'
-clilibPathCassandraRabbitMQ = '/cassandra-rabbitmq/destination/james-server-cli.lib'
+jarPathCassandra = pathInDestination(productCassandra, 'james-server-cassandra-guice.jar')
+libPathCassandra = pathInDestination(productCassandra, 'james-server-cassandra-guice.lib')
 
-jarPathCassandraRabbitMQLdap = '/cassandra-rabbitmq-ldap/destination/james-server-cassandra-rabbitmq-ldap-guice.jar'
-libPathCassandraRabbitMQLdap = '/cassandra-rabbitmq-ldap/destination/james-server-cassandra-rabbitmq-ldap-guice.lib'
-cliJarPathCassandraRabbitMQLdap = '/cassandra-rabbitmq-ldap/destination/james-server-cli.jar'
-clilibPathCassandraRabbitMQLdap = '/cassandra-rabbitmq-ldap/destination/james-server-cli.lib'
+jarPathCassandraLdap = pathInDestination(productCassandra, 'james-server-cassandra-ldap-guice.jar')
+libPathCassandraLdap = pathInDestination(productCassandra, 'james-server-cassandra-ldap-guice.lib')
+cliJarPathCassandra = getCliJarPath(productCassandra)
+clilibPathCassandra = getCliLibPath(productCassandra)
 
-jarPathJPA = '/jpa/destination/james-server-jpa-guice.jar'
-libPathJPA = '/jpa/destination/james-server-jpa-guice.lib'
-cliJarPathJPA = '/jpa/destination/james-server-cli.jar'
-clilibPathJPA = '/jpa/destination/james-server-cli.lib'
+jarPathCassandraRabbitMQ = pathInDestination(productCassandraRabbitMQ, 'james-server-cassandra-rabbitmq-guice.jar')
+libPathCassandraRabbitMQ = pathInDestination(productCassandraRabbitMQ, 'james-server-cassandra-rabbitmq-guice.lib')
+cliJarPathCassandraRabbitMQ = getCliJarPath(productCassandraRabbitMQ)
+clilibPathCassandraRabbitMQ = getCliLibPath(productCassandraRabbitMQ)
 
-jarPathMemory = '/memory/destination/james-server-memory-guice.jar'
-libPathMemory = '/memory/destination/james-server-memory-guice.lib'
-cliJarPathMemory = '/memory/destination/james-server-cli.jar'
-clilibPathMemory = '/memory/destination/james-server-cli.lib'
+jarPathCassandraRabbitMQLdap = pathInDestination(productCassandraRabbitMQLdap, 'james-server-cassandra-rabbitmq-ldap-guice.jar')
+libPathCassandraRabbitMQLdap = pathInDestination(productCassandraRabbitMQLdap, 'james-server-cassandra-rabbitmq-ldap-guice.lib')
+cliJarPathCassandraRabbitMQLdap = getCliJarPath(productCassandraRabbitMQLdap)
+clilibPathCassandraRabbitMQLdap = getCliLibPath(productCassandraRabbitMQLdap)
+
+jarPathJPA = pathInDestination(productJPA, 'james-server-jpa-guice.jar')
+libPathJPA = pathInDestination(productJPA, 'james-server-jpa-guice.lib')
+cliJarPathJPA = getCliJarPath(productJPA)
+clilibPathJPA = getCliLibPath(productJPA)
+
+jarPathMemory = pathInDestination(productMemory, 'james-server-memory-guice.jar')
+libPathMemory = pathInDestination(productMemory, 'james-server-memory-guice.lib')
+cliJarPathMemory = getCliJarPath(productMemory)
+clilibPathMemory = getCliLibPath(productMemory)
+
+private getCliJarPath(productMemory) {
+    pathInDestination(productMemory, 'james-server-cli.jar')
+}
+
+private getCliLibPath(product) {
+    pathInDestination(product, 'james-server-cli.lib')
+}
+
+def pathInDestination(product, file) {
+    return "$product/destination/$file"
+}
 
 keystorePath = '/keys/keystore'
 jamesCliWithOptions = 'java -jar /root/james-cli.jar -h 127.0.0.1'
