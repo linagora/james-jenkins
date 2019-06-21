@@ -529,10 +529,10 @@ flows["${sha1}"] = {
                     buildVolumeFromTag(this)
                 } else {
                     sh "echo 'cassandra-rabbitmq-ldap content before merge'"
-                    sh "ls -R dockerfiles/run/guice/cassandra-rabbitmq-ldap || true"
+                    sh "ls -R dockerfiles/run/guice/cassandra-rabbitmq-ldap"
                     merge(this)
                     sh "echo 'cassandra-rabbitmq-ldap content after merge'"
-                    sh "ls -R dockerfiles/run/guice/cassandra-rabbitmq-ldap || true"
+                    sh "ls -R dockerfiles/run/guice/cassandra-rabbitmq-ldap"
                 }
 
 
@@ -542,7 +542,7 @@ flows["${sha1}"] = {
 
                 compile()
                 sh "echo 'cassandra-rabbitmq-ldap content after compile'"
-                sh "ls -R dockerfiles/run/guice/cassandra-rabbitmq-ldap || true"
+                sh "ls -R dockerfiles/run/guice/cassandra-rabbitmq-ldap"
                 deployGuiceCassandra()
                 testGuiceCassandra()
 
