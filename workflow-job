@@ -297,34 +297,6 @@ private getCliLibPath(product) {
     pathInDestination(product, 'james-server-cli.lib')
 }
 
-def runJamesScriptPath(product) {
-    pathInDestination(product, 'run_james.sh')
-}
-
-def glowrootPluginsPath(product) {
-    pathForGlowrootFile(product, 'plugins')
-}
-
-def glowrootJarPath(product) {
-    pathForGlowrootFile(product, 'glowroot.jar')
-}
-
-def glowrootCollectorJarPath(product) {
-    pathForGlowrootFile(product, 'lib/glowroot-embedded-collector.jar')
-}
-
-def glowrootLogginJarPath(product) {
-    pathForGlowrootFile(product, 'lib/glowroot-logging-logstash.jar')
-}
-
-def glowrootAdminJsonPath(product) {
-    pathForGlowrootFile(product, 'admin.json')
-}
-
-def pathForGlowrootFile(product, file) {
-    pathInDestination(product, "glowroot/$file")
-}
-
 def pathInDestination(product, file) {
     return "$product/destination/$file"
 }
@@ -630,14 +602,6 @@ def copyFilesFromCompilationContainer(product, jarPath, libPath) {
     sh "cd dockerfiles/run/guice/$product; docker cp ${containers.jamesTest}:$libPath destination"
     sh "cd dockerfiles/run/guice/$product; docker cp ${containers.jamesTest}:${getCliJarPath(product)} destination"
     sh "cd dockerfiles/run/guice/$product; docker cp ${containers.jamesTest}:${getCliLibPath(product)} destination"
-
-    sh "cd dockerfiles/run/guice/$product; docker cp ${containers.jamesTest}:${glowrootPluginsPath(product)} destination/glowroot/plugins"
-    sh "cd dockerfiles/run/guice/$product; docker cp ${containers.jamesTest}:${glowrootJarPath(product)} destination/glowroot"
-    sh "cd dockerfiles/run/guice/$product; docker cp ${containers.jamesTest}:${glowrootAdminJsonPath(product)} destination/glowroot"
-    sh "cd dockerfiles/run/guice/$product; docker cp ${containers.jamesTest}:${glowrootCollectorJarPath(product)} destination/glowroot/lib"
-    sh "cd dockerfiles/run/guice/$product; docker cp ${containers.jamesTest}:${glowrootLogginJarPath(product)} destination/glowroot/lib"
-
-    sh "cd dockerfiles/run/guice/$product; docker cp ${containers.jamesTest}:${runJamesScriptPath(product)} destination"
 
 }
 
