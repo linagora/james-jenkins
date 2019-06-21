@@ -631,13 +631,13 @@ def copyFilesFromCompilationContainer(product, jarPath, libPath) {
     sh "cd dockerfiles/run/guice/$product; docker cp ${containers.jamesTest}:${getCliJarPath(product)} destination"
     sh "cd dockerfiles/run/guice/$product; docker cp ${containers.jamesTest}:${getCliLibPath(product)} destination"
 
-    sh "cd dockerfiles/run/guice/$product; docker cp ${containers.jamesTest}:${glowrootPluginsPath(product)} destination/glowroot/plugins || true"
-    sh "cd dockerfiles/run/guice/$product; docker cp ${containers.jamesTest}:${glowrootJarPath(product)} destination/glowroot || true"
-    sh "cd dockerfiles/run/guice/$product; docker cp ${containers.jamesTest}:${glowrootAdminJsonPath(product)} destination/glowroot || true"
-    sh "cd dockerfiles/run/guice/$product; docker cp ${containers.jamesTest}:${glowrootCollectorJarPath(product)} destination/glowroot/lib || true"
-    sh "cd dockerfiles/run/guice/$product; docker cp ${containers.jamesTest}:${glowrootLogginJarPath(product)} destination/glowroot/lib || true"
+    sh "cd dockerfiles/run/guice/$product; docker cp ${containers.jamesTest}:${glowrootPluginsPath(product)} destination/glowroot/plugins"
+    sh "cd dockerfiles/run/guice/$product; docker cp ${containers.jamesTest}:${glowrootJarPath(product)} destination/glowroot"
+    sh "cd dockerfiles/run/guice/$product; docker cp ${containers.jamesTest}:${glowrootAdminJsonPath(product)} destination/glowroot"
+    sh "cd dockerfiles/run/guice/$product; docker cp ${containers.jamesTest}:${glowrootCollectorJarPath(product)} destination/glowroot/lib"
+    sh "cd dockerfiles/run/guice/$product; docker cp ${containers.jamesTest}:${glowrootLogginJarPath(product)} destination/glowroot/lib"
 
-    sh "cd dockerfiles/run/guice/$product; docker cp ${containers.jamesTest}:${runJamesScriptPath(product)} destination || true"
+    sh "cd dockerfiles/run/guice/$product; docker cp ${containers.jamesTest}:${runJamesScriptPath(product)} destination"
 
 }
 
