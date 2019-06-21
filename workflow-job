@@ -528,21 +528,14 @@ flows["${sha1}"] = {
                 if (isTag()) {
                     buildVolumeFromTag(this)
                 } else {
-                    sh "echo 'cassandra-rabbitmq-ldap content before merge'"
-                    sh "ls -R dockerfiles/run/guice/cassandra-rabbitmq-ldap"
                     merge(this)
-                    sh "echo 'cassandra-rabbitmq-ldap content after merge'"
-                    sh "ls -R dockerfiles/run/guice/cassandra-rabbitmq-ldap"
                 }
-
-
                 merging.success()
                 rabbitMQProductExists = fileExists 'dockerfiles/run/guice/cassandra-rabbitmq-ldap'
                 memoryProductExists = fileExists 'dockerfiles/run/guice/memory'
 
                 compile()
-                sh "echo 'cassandra-rabbitmq-ldap content after compile'"
-                sh "ls -R dockerfiles/run/guice/cassandra-rabbitmq-ldap"
+
                 deployGuiceCassandra()
                 testGuiceCassandra()
 
