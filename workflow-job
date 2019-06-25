@@ -761,6 +761,14 @@ def testGuiceJPA() {
 jamesCliWithOptionsSpring = ""
 def deploySpringJPA() {
     sh "cd dockerfiles/run/spring; docker cp ${containers.keystore}:${keystorePath} destination/conf"
+
+    sh "cd dockerfiles/run/spring; mkdir destination/glowroot/lib || true"
+
+    sh "cd dockerfiles/run/spring; docker cp ${containers.jamesTest}:spring/destination/glowroot/glowroot.jar destination/glowroot || true"
+    sh "cd dockerfiles/run/spring; docker cp ${containers.jamesTest}:spring/destination/lib/glowroot-embedded-collector.jar destination/glowroot/lib || true"
+    sh "cd dockerfiles/run/spring; docker cp ${containers.jamesTest}:spring/destination/lib/glowroot-logging-logstash.jar destination/glowroot/lib || true"
+
+
     def zipPath = "/spring/destination/james-server-app-${jamesVersion}-app.zip"
     jamesCliWithOptionsSpring = "/root/james-server-app-${jamesVersion}/bin/james-cli.sh -h 127.0.0.1 -p 9999"
 
