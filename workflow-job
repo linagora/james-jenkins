@@ -765,8 +765,8 @@ def deploySpringJPA() {
     sh "cd dockerfiles/run/spring; mkdir destination/glowroot/lib || true"
 
     sh "cd dockerfiles/run/spring; docker cp ${containers.jamesTest}:spring/destination/glowroot/glowroot.jar destination/glowroot || true"
-    sh "cd dockerfiles/run/spring; docker cp ${containers.jamesTest}:spring/destination/lib/glowroot-embedded-collector.jar destination/glowroot/lib || true"
-    sh "cd dockerfiles/run/spring; docker cp ${containers.jamesTest}:spring/destination/lib/glowroot-logging-logstash.jar destination/glowroot/lib || true"
+    sh "cd dockerfiles/run/spring; docker cp ${containers.jamesTest}:spring/destination/glowroot/lib/glowroot-embedded-collector.jar destination/glowroot/lib || true"
+    sh "cd dockerfiles/run/spring; docker cp ${containers.jamesTest}:spring/destination/glowroot/lib/glowroot-logging-logstash.jar destination/glowroot/lib || true"
 
 
     def zipPath = "/spring/destination/james-server-app-${jamesVersion}-app.zip"
