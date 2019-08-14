@@ -573,7 +573,7 @@ def buildVolumeFromTag(def node) {
 def compile() {
     sh "docker build --tag=${images.jamesCompile} dockerfiles/compilation/java-8"
 
-    def tmpfsOptions = '--tmpfs=/tmp:rw,exec,size=1g --tmpfs=/james-project:rw,size=4g'
+    def tmpfsOptions = '--tmpfs=/tmp:rw,exec,size=1g --tmpfs=/root/.m2:rw,exec,size=1g --tmpfs=/james-project:rw,size=4g'
     def dockerVolume = '-v /var/run/docker.sock:/var/run/docker.sock'
     def destinationVolumes = '--volume=/jpa/destination --volume=/cassandra/destination --volume=/spring/destination --volume=/cassandra-rabbitmq/destination --volume=/cassandra-rabbitmq-ldap/destination --volume=/memory/destination'
     def allVolumes = "${dockerVolume} --volumes-from=${containers.keys} --volumes-from=${containers.gitPublish} ${destinationVolumes}"
