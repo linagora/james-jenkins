@@ -391,7 +391,7 @@ def tag = {
         return "${tagName}"
     }
     if (isMaster()) {
-        return "latest"
+        return "branch-master"
     }
     return "${workingBranch}"
 }
