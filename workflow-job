@@ -458,11 +458,11 @@ commitStatusFactory = new CommitStatusFactory(repoName, sha1)
 merging = commitStatusFactory.from("Merging")
 statuses.addPendingStatus(merging)
 
-buildingJava8 = commitStatusFactory.from("Building java 8")
-statuses.addPendingStatus(buildingJava8)
+buildingJava = commitStatusFactory.from("Building")
+statuses.addPendingStatus(buildingJava)
 
-testingJava8 = commitStatusFactory.from("Testing java 8")
-statuses.addPendingStatus(testingJava8)
+testingJava = commitStatusFactory.from("Testing")
+statuses.addPendingStatus(testingJava)
 
 dockeringGuiceCassandraRabbitMQLdap = commitStatusFactory.from("Dockering Guice Cassandra + RabbitMQ + Swift + Ldap")
 statuses.addPendingStatus(dockeringGuiceCassandraRabbitMQLdap)
@@ -535,7 +535,7 @@ flows["${sha1}"] = {
                 rabbitMQProductExists = fileExists 'dockerfiles/run/guice/cassandra-rabbitmq-ldap'
                 memoryProductExists = fileExists 'dockerfiles/run/guice/memory'
 
-                compile()
+                compile(this)
 
                 deployGuiceCassandra()
                 testGuiceCassandra()
@@ -608,8 +608,14 @@ def buildVolumeFromTag(def node) {
     sh "docker run ${verbose} -t --name ${containers.gitPublish} -v /origin ${images.gitPublish}"
 }
 
-def compile() {
-    sh "docker build --tag=${images.jamesCompile} dockerfiles/compilation/java-8"
+def compile(def node) {
+    if (node.fileExists('dockerfiles/compilation/java-8')) {
+        javaVersion = java-8
+    } else {
+        javaVersion = java-11
+    }
+
+    sh "docker build --tag=${images.jamesCompile} dockerfiles/compilation/${javaVersion}"
 
     def tmpfsOptions = '--tmpfs=/tmp:rw,exec,size=1g --tmpfs=/james-project:rw,size=4g'
     def dockerVolume = '-v /var/run/docker.sock:/var/run/docker.sock'
@@ -619,10 +625,10 @@ def compile() {
     def testNameDefinitions = "--name=${containers.jamesTest}"
 
     sh "cd dockerfiles/; docker run ${verbose} ${tmpfsOptions} --volumes-from=${containers.gitPublish} ${compileNameDefinitions} --env 'MVN_ADDITIONAL_ARG_LINE=-T 1C' ${images.jamesCompile} -s ${mergeBranch}"
-    buildingJava8.success()
+    buildingJava.success()
 
     sh "cd dockerfiles/; docker run ${verbose} ${tmpfsOptions} ${allVolumes} ${testNameDefinitions} ${partialBuildEnv} ${images.jamesCompile} ${mergeBranch}"
-    testingJava8.success()
+    testingJava.success()
 }
 
 def copyFilesFromCompilationContainer(product, jarPath, libPath) {
