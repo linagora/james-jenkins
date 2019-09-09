@@ -4,12 +4,13 @@ import groovy.transform.TupleConstructor
 class TagOnRepo {
     String repo
     String tag
+    boolean latest = false
 }
 
 def tagsToBuild = [
         new TagOnRepo('linagora/james-project', 'openpaas-1.4.0'),
         new TagOnRepo('linagora/james-project', 'openpaas-1.4.1'),
-        new TagOnRepo('linagora/james-project', 'james-project-3.3.0'),
+        new TagOnRepo('linagora/james-project', 'james-project-3.3.0', latest: true),
         new TagOnRepo('linagora/james-project', 'openpaas-1.4.8'),
         new TagOnRepo('linagora/james-project', 'openpaas-1.5.1')
 ]
@@ -34,7 +35,7 @@ tagsToBuild.each {
                     [buildStepFailure: 'FAILURE',
                      failure         : 'FAILURE',
                      unstable        : 'UNSTABLE']) {
-                    predefinedProps([repoURL: repository, tagName: tagOnRepo.tag, originalBranch: ""])
+                    predefinedProps([repoURL: repository, tagName: tagOnRepo.tag, originalBranch: "", isLatest: tagOnRepo.latest])
                 }
             }
         }

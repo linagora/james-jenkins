@@ -12,6 +12,7 @@ import org.kohsuke.github.GHRepository
 // or $tagName parameter: specifies the tag to build
 // or $sha1 parameter: specifies the actual commit
 // $originalBranch: the branch used for merge (optional)
+// $isLatest: is it the latest stable release
 
 hostname = 'james.linagora.com'
 maxRetries = 120
@@ -391,9 +392,9 @@ def tag = {
         return "${tagName}"
     }
     if (isMaster()) {
-        return "latest"
+        return "branch-master"
     }
-    return "${workingBranch}"
+    return null
 }
 
 dockerTag = tag()
@@ -860,6 +861,17 @@ def publish() {
         sh "docker login -u ${dockerUser} -p ${dockerPassword}"
     }
 
+    if (dockerTag) {
+        publishTag(dockerTag)
+    }
+    if (isLatest == "true") {
+        publishTag("latest")
+    }
+
+    publishing.success()
+}
+
+def publishTag(dockerTag) {
     sh "docker tag ${images.jamesCassandra} linagora/james-project:${dockerTag}"
     sh "docker push linagora/james-project:${dockerTag}"
 
@@ -889,6 +901,4 @@ def publish() {
         sh "docker tag ${images.jamesCassandraRabbitMQ} linagora/james-rabbitmq-project:${dockerTag}"
         sh "docker push linagora/james-rabbitmq-project:${dockerTag}"
     }
-
-    publishing.success()
 }
