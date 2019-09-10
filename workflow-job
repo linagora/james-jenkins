@@ -611,9 +611,9 @@ def buildVolumeFromTag(def node) {
 
 def compile(def node) {
     if (node.fileExists('dockerfiles/compilation/java-8')) {
-        javaVersion = java-8
+        javaVersion = "java-8"
     } else {
-        javaVersion = java-11
+        javaVersion = "java-11"
     }
 
     sh "docker build --tag=${images.jamesCompile} dockerfiles/compilation/${javaVersion}"
