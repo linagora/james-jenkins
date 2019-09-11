@@ -625,10 +625,10 @@ def compile(def node) {
     def compileNameDefinitions = "--name=${containers.jamesCompile}"
     def testNameDefinitions = "--name=${containers.jamesTest}"
 
-    sh "cd dockerfiles/; docker run ${verbose} ${tmpfsOptions} --volumes-from=${containers.gitPublish} ${compileNameDefinitions} --env 'MVN_ADDITIONAL_ARG_LINE=-T 1C -B' ${images.jamesCompile} -s ${mergeBranch}"
+    sh "cd dockerfiles/; docker run ${verbose} ${tmpfsOptions} --volumes-from=${containers.gitPublish} ${compileNameDefinitions} --env 'MVN_ADDITIONAL_ARG_LINE=-T 1C --batch-mode' ${images.jamesCompile} -s ${mergeBranch}"
     buildingJava.success()
 
-    sh "cd dockerfiles/; docker run ${verbose} ${tmpfsOptions} ${allVolumes} --env 'MVN_ADDITIONAL_ARG_LINE=-B' ${testNameDefinitions} ${partialBuildEnv} ${images.jamesCompile} ${mergeBranch}"
+    sh "cd dockerfiles/; docker run ${verbose} ${tmpfsOptions} ${allVolumes} --env 'MVN_ADDITIONAL_ARG_LINE=--batch-mode' ${testNameDefinitions} ${partialBuildEnv} ${images.jamesCompile} ${mergeBranch}"
     testingJava.success()
 }
 
