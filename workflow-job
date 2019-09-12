@@ -450,6 +450,8 @@ mergeBranch = "MERGE-${buildId}"
 containers = new Containers(buildId)
 jamesLinks = "--link ${containers.cassandra}:cassandra --link ${containers.elasticSearch}:elasticsearch"
 rabbitmqSwiftLinks = "--link ${containers.rabbitmq}:rabbitmq --link ${containers.swift}:swift"
+m2volume = "m2-${buildId}"
+m2mount = "--volume ${m2volume}:/root/.m2"
 
 sha1ToBuild = sha1OrBranch()
 verbose = "-a stdout -a stderr"
@@ -536,6 +538,8 @@ flows["${sha1}"] = {
                 rabbitMQProductExists = fileExists 'dockerfiles/run/guice/cassandra-rabbitmq-ldap'
                 memoryProductExists = fileExists 'dockerfiles/run/guice/memory'
 
+                sh "docker volume create ${m2volume}"
+
                 compile(this)
 
                 deployGuiceCassandra()
@@ -569,6 +573,7 @@ flows["${sha1}"] = {
             } finally {
                 containers.deleteAll(this)
                 images?.deleteAll(this)
+                sh "docker volume rm ${m2volume} || true"
             }
         }
     }
@@ -621,11 +626,11 @@ def compile(def node) {
     def tmpfsOptions = '--tmpfs=/tmp:rw,exec,size=1g --tmpfs=/james-project:rw,size=4g'
     def dockerVolume = '-v /var/run/docker.sock:/var/run/docker.sock'
     def destinationVolumes = '--volume=/jpa/destination --volume=/cassandra/destination --volume=/spring/destination --volume=/cassandra-rabbitmq/destination --volume=/cassandra-rabbitmq-ldap/destination --volume=/memory/destination'
-    def allVolumes = "${dockerVolume} --volumes-from=${containers.keys} --volumes-from=${containers.gitPublish} ${destinationVolumes}"
+    def allVolumes = "${dockerVolume} ${m2mount} --volumes-from=${containers.keys} --volumes-from=${containers.gitPublish} ${destinationVolumes}"
     def compileNameDefinitions = "--name=${containers.jamesCompile}"
     def testNameDefinitions = "--name=${containers.jamesTest}"
 
-    sh "cd dockerfiles/; docker run ${verbose} ${tmpfsOptions} --volumes-from=${containers.gitPublish} ${compileNameDefinitions} --env 'MVN_ADDITIONAL_ARG_LINE=-T 1C --batch-mode' ${images.jamesCompile} -s ${mergeBranch}"
+    sh "cd dockerfiles/; docker run ${verbose} ${tmpfsOptions} ${m2mount} --volumes-from=${containers.gitPublish} ${compileNameDefinitions} --env 'MVN_ADDITIONAL_ARG_LINE=-T 1C --batch-mode' ${images.jamesCompile} -s ${mergeBranch}"
     buildingJava.success()
 
     sh "cd dockerfiles/; docker run ${verbose} ${tmpfsOptions} ${allVolumes} --env 'MVN_ADDITIONAL_ARG_LINE=--batch-mode' ${testNameDefinitions} ${partialBuildEnv} ${images.jamesCompile} ${mergeBranch}"
@@ -724,7 +729,7 @@ def testGuiceRabbitMQ() {
 
     echo "Running integration tests on Cassandra + RabbitMQ + Swift on ${buildId}"
     def jamesCassandraRabbitMQIp = containerIp("${containers.jamesCassandraRabbitMQ}")
-    sh "docker run ${verbose} --name=${containers.integrationCassandraRabbitMQ} --entrypoint=\"/root/integration_tests.sh\" --volumes-from=${containers.gitPublish} ${images.jamesCompile} ${jamesCassandraRabbitMQIp} ${IMAP_PORT} ${SMTP_PORT} ${sha1ToBuild}"
+    sh "docker run ${verbose} ${m2mount} --name=${containers.integrationCassandraRabbitMQ} --entrypoint=\"/root/integration_tests.sh\" --volumes-from=${containers.gitPublish} ${images.jamesCompile} ${jamesCassandraRabbitMQIp} ${IMAP_PORT} ${SMTP_PORT} ${sha1ToBuild}"
 }
 
 def testGuiceCassandra() {
@@ -732,7 +737,7 @@ def testGuiceCassandra() {
 
     echo "Running integration tests on Cassandra on ${buildId}"
     def jamesCassandraIp = containerIp("${containers.jamesCassandra}")
-    sh "docker run ${verbose} --name=${containers.integrationCassandra} --entrypoint=\"/root/integration_tests.sh\" --volumes-from=${containers.gitPublish} ${images.jamesCompile} ${jamesCassandraIp} ${IMAP_PORT} ${SMTP_PORT} ${sha1ToBuild}"
+    sh "docker run ${verbose} ${m2mount} --name=${containers.integrationCassandra} --entrypoint=\"/root/integration_tests.sh\" --volumes-from=${containers.gitPublish} ${images.jamesCompile} ${jamesCassandraIp} ${IMAP_PORT} ${SMTP_PORT} ${sha1ToBuild}"
 
     testingGuiceCassandra.success()
 }
@@ -760,7 +765,7 @@ def testGuiceJPA() {
 
     echo "Running integration tests on JPA on ${buildId}"
     def jamesJPAIp = containerIp("${containers.jamesJPA}")
-    sh "docker run ${verbose} --name=${containers.integrationJPA} --entrypoint=\"/root/integration_tests.sh\" --volumes-from=${containers.gitPublish} ${images.jamesCompile} ${jamesJPAIp} ${IMAP_PORT} ${SMTP_PORT} ${sha1ToBuild}"
+    sh "docker run ${verbose} ${m2mount} --name=${containers.integrationJPA} --entrypoint=\"/root/integration_tests.sh\" --volumes-from=${containers.gitPublish} ${images.jamesCompile} ${jamesJPAIp} ${IMAP_PORT} ${SMTP_PORT} ${sha1ToBuild}"
 
     testingGuiceJPA.success()
 }
@@ -801,7 +806,7 @@ def testSpringJPA() {
 
     echo "Running integration tests on ${buildId}"
     def jamesSpringIp = containerIp("${containers.jamesSpring}")
-    sh "docker run ${verbose} --name=${containers.integrationSpring} --entrypoint=\"/root/integration_tests.sh\" --volumes-from=${containers.gitPublish} ${images.jamesCompile} ${jamesSpringIp} ${IMAP_PORT} ${SMTP_PORT} ${sha1ToBuild}"
+    sh "docker run ${verbose} ${m2mount} --name=${containers.integrationSpring} --entrypoint=\"/root/integration_tests.sh\" --volumes-from=${containers.gitPublish} ${images.jamesCompile} ${jamesSpringIp} ${IMAP_PORT} ${SMTP_PORT} ${sha1ToBuild}"
 
     testingSpringJPA.success()
 }
@@ -829,7 +834,7 @@ def testMemory() {
 
     echo "Running integration tests on Memory on ${buildId}"
     def jamesMemoryIp = containerIp("${containers.jamesMemory}")
-    sh "docker run ${verbose} --name=${containers.integrationMemory} --entrypoint=\"/root/integration_tests.sh\" --volumes-from=${containers.gitPublish} ${images.jamesCompile} ${jamesMemoryIp} ${IMAP_PORT} ${SMTP_PORT} ${sha1ToBuild}"
+    sh "docker run ${verbose} ${m2mount} --name=${containers.integrationMemory} --entrypoint=\"/root/integration_tests.sh\" --volumes-from=${containers.gitPublish} ${images.jamesCompile} ${jamesMemoryIp} ${IMAP_PORT} ${SMTP_PORT} ${sha1ToBuild}"
 
     testingMemory.success()
 }
