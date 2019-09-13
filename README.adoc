@@ -95,17 +95,6 @@ To achieve that, you have to provide a user name and its password in the *env.fi
 
 You need some extra container for the jobs to run well.
 
-==== Cache for maven
-
-We will then add a container for caching maven repositories ( accelerate builds, 
-avoid errors on maven failing retrieving its dependencies). You will need it on 
-nodes running James compilation through docker.
-
-----
-$docker build -f DockerFileMavenCache -t maven-cache .
-$docker run -v /root/.m2 --name maven-cache -e affinity:container==keys maven-cache
-----
-
 ==== James Keystore
 
 If you want to use james deploy script, you need to have a docker container 
