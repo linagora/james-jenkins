@@ -634,7 +634,7 @@ def compile(def node) {
     sh "cd dockerfiles/; docker run ${verbose} ${tmpfsOptions} ${m2mount} --volumes-from=${containers.gitPublish} ${compileNameDefinitions} --env 'MVN_ADDITIONAL_ARG_LINE=-T 1C --batch-mode' ${images.jamesCompile} -s ${mergeBranch}"
     buildingJava.success()
 
-    sh "cd dockerfiles/; docker run ${verbose} ${tmpfsOptions} ${allVolumes} ${batchModeEnv}' ${testNameDefinitions} ${partialBuildEnv} ${images.jamesCompile} ${mergeBranch}"
+    sh "cd dockerfiles/; docker run ${verbose} ${tmpfsOptions} ${allVolumes} ${batchModeEnv} ${testNameDefinitions} ${partialBuildEnv} ${images.jamesCompile} ${mergeBranch}"
     testingJava.success()
 }
 
