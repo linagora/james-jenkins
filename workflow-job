@@ -343,7 +343,7 @@ def waitForCommandSuccess(command, maxRetries) {
     def tries = 0
     while (tries++ < maxRetries) {
         try {
-            sh command
+            sh "echo 'Waiting ${command}'; " + command + " &> /dev/null"
             return true
         } catch (Exception e) {
             if (tries >= maxRetries) {
