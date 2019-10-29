@@ -11,7 +11,7 @@ def tagsToBuild = [
         new TagOnRepo(repo: 'linagora/james-project', tag: 'openpaas-1.4.0'),
         new TagOnRepo(repo: 'linagora/james-project', tag: 'openpaas-1.4.1'),
         new TagOnRepo(repo: 'linagora/james-project', tag: 'james-project-3.3.0'),
-        new TagOnRepo(repo: 'linagora/james-project', tag: 'james-project-3.4.0', latest: true),
+        new TagOnRepo(repo: 'apache/james-project', tag: 'james-project-3.4.0', latest: true),
         new TagOnRepo(repo: 'linagora/james-project', tag: 'openpaas-1.4.8'),
         new TagOnRepo(repo: 'linagora/james-project', tag: 'openpaas-1.5.1')
 ]
