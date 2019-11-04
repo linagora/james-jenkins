@@ -787,7 +787,7 @@ def deploySpringJPA() {
 
     sh "cd dockerfiles/run/spring; docker cp ${containers.jamesTest}:${zipPath} destination"
 
-    sh "cd dockerfiles/run/spring; docker build --tag=${images.jamesSpring} ."
+    sh "cd dockerfiles/run/spring; docker build --tag=${images.jamesSpring} --build-arg VERSION=${jamesVersion} ."
 
     dockeringSpringJPA.success()
 
