@@ -136,8 +136,8 @@ class Images implements Serializable {
     def jamesCassandraRabbitMQLdap
     def jamesCassandraLdap
     def jamesJPA
-    def jamesJpaSample
-    def jamesJpaSampleForTesting
+    def jamesDemo
+    def jamesDemoForTesting
     def jamesSpring
     def jamesMemory
     def gitPublish
@@ -151,14 +151,14 @@ class Images implements Serializable {
         jamesCassandraRabbitMQLdap = 'james-server-cassandra-rabbitmq-ldap-' + buildId
         jamesCassandraLdap = 'james-server-cassandra-ldap-' + buildId
         jamesJPA = 'james-server-jpa-' + buildId
-        jamesJpaSample = 'james-server-jpa-sample-' + buildId
-        jamesJpaSampleForTesting = 'james-server-jpa-sample-testing' + buildId
+        jamesDemo = 'james-server-demo-' + buildId
+        jamesDemoForTesting = 'james-server-demo-testing' + buildId
         jamesSpring = 'james-server-spring-' + buildId
         jamesMemory = 'james-server-memory-' + buildId
         gitPublish = 'git/publish-' + buildId
 
         images = [ jamesCompile, jamesCassandra, jamesCassandraRabbitMQ, jamesCassandraRabbitMQLdap, jamesCassandraLdap,
-                    jamesJPA, jamesJpaSample, jamesJpaSampleForTesting, jamesSpring, jamesMemory, gitPublish ]
+                    jamesJPA, jamesDemo, jamesDemoForTesting, jamesSpring, jamesMemory, gitPublish ]
     }
 
     def customDependenciesOrDefault(def node) {
@@ -210,7 +210,7 @@ class Containers implements Serializable {
     def jamesCassandraRabbitMQ
     def jamesCassandraLdap
     def jamesJPA
-    def jamesJpaSampleForTesting
+    def jamesDemoForTesting
     def jamesSpring
     def jamesMemory
     def gitPublish
@@ -233,14 +233,14 @@ class Containers implements Serializable {
         jamesCassandraRabbitMQ = 'james-server-cassandra-rabbitmq-' + buildId
         jamesCassandraLdap = 'james-server-cassandra-ldap-' + buildId
         jamesJPA = 'james-server-jpa-' + buildId
-        jamesJpaSampleForTesting = 'james-server-jpa-sample-testing' + buildId
+        jamesDemoForTesting = 'james-server-demo-testing' + buildId
         jamesSpring = 'james-server-spring-' + buildId
         jamesMemory = 'james-server-memory-' + buildId
         gitPublish = 'git-publish-' + buildId
 
         containers = [ cassandra, elasticSearch, rabbitmq, swift,
                        integrationCassandraRabbitMQ, integrationCassandra, integrationJPA, integrationSpring, integrationMemory,
-                       jamesCompile, jamesTest, jamesCassandra, jamesCassandraRabbitMQ, jamesCassandraLdap, jamesJPA, jamesJpaSampleForTesting, jamesSpring, jamesMemory,
+                       jamesCompile, jamesTest, jamesCassandra, jamesCassandraRabbitMQ, jamesCassandraLdap, jamesJPA, jamesDemoForTesting, jamesSpring, jamesMemory,
                        gitPublish ]
     }
 
@@ -484,8 +484,8 @@ deployingMemory = commitStatusFactory.from("Deploying Memory")
 statuses.addPendingStatus(deployingMemory)
 dockeringGuiceCassandraLdap = commitStatusFactory.from("Building Guice Cassandra/Ldap")
 statuses.addPendingStatus(dockeringGuiceCassandraLdap)
-dockeringGuiceJPASampleTesting = commitStatusFactory.from("Dockering Guice JPA with data provision")
-statuses.addPendingStatus(dockeringGuiceJPASampleTesting)
+dockeringGuiceDemoTesting = commitStatusFactory.from("Dockering Guice JPA with data provision")
+statuses.addPendingStatus(dockeringGuiceDemoTesting)
 
 deployingGuiceCassandraRabbitMQ = commitStatusFactory.from("Deploying Guice Cassandra + RabbitMQ + Swift")
 statuses.addPendingStatus(deployingGuiceCassandraRabbitMQ)
@@ -495,8 +495,8 @@ deployingGuiceJPA = commitStatusFactory.from("Deploying Guice JPA")
 statuses.addPendingStatus(deployingGuiceJPA)
 deployingSpringJPA = commitStatusFactory.from("Deploying Spring JPA")
 statuses.addPendingStatus(deployingSpringJPA)
-deployingGuiceJPASampleTesting = commitStatusFactory.from("Deploying Guice JPA with data provision")
-statuses.addPendingStatus(deployingGuiceJPASampleTesting)
+deployingGuiceDemoTesting = commitStatusFactory.from("Deploying Guice JPA with data provision")
+statuses.addPendingStatus(deployingGuiceDemoTesting)
 
 testingGuiceCassandraRabbitMQ = commitStatusFactory.from("Integrating Guice Cassandra  + RabbitMQ + Swift")
 statuses.addPendingStatus(testingGuiceCassandraRabbitMQ)
@@ -559,7 +559,7 @@ flows["${sha1}"] = {
 
                 buildGuiceCassandraLdap()
 
-                deployGuiceJPASample()
+                deployGuiceDemo()
 
                 if (publishToDocker()) {
                     publish()
@@ -847,25 +847,25 @@ def buildGuiceCassandraLdap() {
     dockeringGuiceCassandraLdap.success()
 }
 
-def deployGuiceJPASample() {
+def deployGuiceDemo() {
     sh "cd dockerfiles/run/guice/provisioned; cp Dockerfile NewDockerfile; sed -i -- 's,linagora/james-jpa-guice,${images.jamesJPA},g' NewDockerfile"
 
-    sh "cd dockerfiles/run/guice/provisioned; docker build --tag=${images.jamesJpaSampleForTesting} -f NewDockerfile ."
+    sh "cd dockerfiles/run/guice/provisioned; docker build --tag=${images.jamesDemoForTesting} -f NewDockerfile ."
 
-    dockeringGuiceJPASampleTesting.success()
+    dockeringGuiceDemoTesting.success()
 
-    sh "docker run --detach=true --name=${containers.jamesJpaSampleForTesting} --hostname ${hostname} --expose=${IMAP_PORT} --expose=${SMTP_PORT} --publish-all=true ${images.jamesJpaSampleForTesting}"
+    sh "docker run --detach=true --name=${containers.jamesDemoForTesting} --hostname ${hostname} --expose=${IMAP_PORT} --expose=${SMTP_PORT} --publish-all=true ${images.jamesDemoForTesting}"
 
     echo 'Waiting for James server to be deployed and provision data'
     try {
-        waitForCommandSuccess("docker exec ${containers.jamesJpaSampleForTesting} ${jamesCliWithOptions} listusers", maxRetries)
+        waitForCommandSuccess("docker exec ${containers.jamesDemoForTesting} ${jamesCliWithOptions} listusers", maxRetries)
     } catch (Exception e) {
-        sh "docker logs ${containers.jamesJpaSampleForTesting}"
+        sh "docker logs ${containers.jamesDemoForTesting}"
     }
 
     sh "cd dockerfiles/run/guice/provisioned; rm NewDockerfile"
 
-    deployingGuiceJPASampleTesting.success()
+    deployingGuiceDemoTesting.success()
 }
 
 def publish() {
@@ -901,10 +901,10 @@ def publishTag(dockerTag) {
         sh "docker push linagora/james-memory:${dockerTag}"
     }
 
-    sh "cd dockerfiles/run/guice/provisioned; docker build --tag=${images.jamesJpaSample} ."
+    sh "cd dockerfiles/run/guice/provisioned; docker build --tag=${images.jamesDemo} ."
 
-    sh "docker tag ${images.jamesJpaSample} linagora/james-jpa-sample:${dockerTag}"
-    sh "docker push linagora/james-jpa-sample:${dockerTag}"
+    sh "docker tag ${images.jamesDemo} linagora/james-demo:${dockerTag}"
+    sh "docker push linagora/james-demo:${dockerTag}"
 
     if (rabbitMQProductExists) {
         sh "docker tag ${images.jamesCassandraRabbitMQLdap} linagora/james-cassandra-rabbitmq-ldap-project:${dockerTag}"
