@@ -848,7 +848,7 @@ def buildGuiceCassandraLdap() {
 }
 
 def deployGuiceDemo() {
-    sh "cd dockerfiles/run/guice/provisioned; cp Dockerfile NewDockerfile; sed -i -- 's,linagora/james-jpa-guice,${images.jamesJPA},g' NewDockerfile"
+    sh "cd dockerfiles/run/guice/provisioned; cp Dockerfile NewDockerfile; sed -i -- 's,linagora/james-jpa-guice:james-project-3.4.0,${images.jamesJPA},g' NewDockerfile"
 
     sh "cd dockerfiles/run/guice/provisioned; docker build --tag=${images.jamesDemoForTesting} -f NewDockerfile ."
 
