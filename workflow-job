@@ -1,4 +1,3 @@
-import java.io.File
 import java.io.StringReader
 import java.util.ArrayList
 import java.util.UUID
@@ -130,7 +129,6 @@ class Images implements Serializable {
     def cassandra
     def elasticSearch
     def rabbitmq
-    def s3
     def swift
     def jamesCompile
     def jamesCassandra
@@ -170,7 +168,6 @@ class Images implements Serializable {
         elasticSearch = properties."elasticSearch" ?: 'docker.elastic.co/elasticsearch/elasticsearch:6.3.2'
         rabbitmq = properties."rabbitmq" ?: 'rabbitmq:3.8.1-management'
         swift = properties."swift" ?: 'linagora/openstack-keystone-swift:pike'
-        s3 = properties."s3" ?: 'scality/s3server:mem-6018536a'
     }
 
     def fromFile(def node, def file) {
@@ -201,7 +198,6 @@ class Containers implements Serializable {
     def cassandra
     def elasticSearch
     def rabbitmq
-    def s3
     def swift
     def integrationCassandraRabbitMQ
     def integrationCassandra
@@ -225,7 +221,6 @@ class Containers implements Serializable {
         cassandra = 'cassandra-' + buildId
         elasticSearch = 'elasticSearch-' + buildId
         rabbitmq = 'rabbitmq-' + buildId
-        s3 = 's3-' + buildId
         swift = 'swift-' + buildId
         integrationCassandraRabbitMQ = 'integration-cassandra-rabbitmq-' + buildId
         integrationCassandra = 'integration-cassandra-' + buildId
@@ -243,7 +238,7 @@ class Containers implements Serializable {
         jamesMemory = 'james-server-memory-' + buildId
         gitPublish = 'git-publish-' + buildId
 
-        containers = [ cassandra, elasticSearch, rabbitmq, s3, swift,
+        containers = [ cassandra, elasticSearch, rabbitmq, swift,
                        integrationCassandraRabbitMQ, integrationCassandra, integrationJPA, integrationSpring, integrationMemory,
                        jamesCompile, jamesTest, jamesCassandra, jamesCassandraRabbitMQ, jamesCassandraLdap, jamesJPA, jamesDemoForTesting, jamesSpring, jamesMemory,
                        gitPublish ]
@@ -454,7 +449,6 @@ buildId = "${workingBranch.toLowerCase()}-${UUID.randomUUID()}"
 mergeBranch = "MERGE-${buildId}"
 containers = new Containers(buildId)
 jamesLinks = "--link ${containers.cassandra}:cassandra --link ${containers.elasticSearch}:elasticsearch"
-rabbitmqS3Links = "--link ${containers.rabbitmq}:rabbitmq --link ${containers.s3}:s3"
 rabbitmqSwiftLinks = "--link ${containers.rabbitmq}:rabbitmq --link ${containers.swift}:swift"
 m2volume = "m2-${buildId}"
 m2mount = "--volume ${m2volume}:/root/.m2"
@@ -474,9 +468,9 @@ statuses.addPendingStatus(buildingJava)
 testingJava = commitStatusFactory.from("Testing")
 statuses.addPendingStatus(testingJava)
 
-dockeringGuiceCassandraRabbitMQLdap = commitStatusFactory.from("Dockering Guice Cassandra + RabbitMQ + object store + Ldap")
+dockeringGuiceCassandraRabbitMQLdap = commitStatusFactory.from("Dockering Guice Cassandra + RabbitMQ + Swift + Ldap")
 statuses.addPendingStatus(dockeringGuiceCassandraRabbitMQLdap)
-dockeringGuiceCassandraRabbitMQ = commitStatusFactory.from("Dockering Guice Cassandra + RabbitMQ + object store")
+dockeringGuiceCassandraRabbitMQ = commitStatusFactory.from("Dockering Guice Cassandra + RabbitMQ + Swift")
 statuses.addPendingStatus(dockeringGuiceCassandraRabbitMQ)
 dockeringGuiceCassandra = commitStatusFactory.from("Dockering Guice Cassandra")
 statuses.addPendingStatus(dockeringGuiceCassandra)
@@ -493,7 +487,7 @@ statuses.addPendingStatus(dockeringGuiceCassandraLdap)
 dockeringGuiceDemoTesting = commitStatusFactory.from("Dockering Guice JPA with data provision")
 statuses.addPendingStatus(dockeringGuiceDemoTesting)
 
-deployingGuiceCassandraRabbitMQ = commitStatusFactory.from("Deploying Guice Cassandra + RabbitMQ + object store")
+deployingGuiceCassandraRabbitMQ = commitStatusFactory.from("Deploying Guice Cassandra + RabbitMQ + Swift")
 statuses.addPendingStatus(deployingGuiceCassandraRabbitMQ)
 deployingGuiceCassandra = commitStatusFactory.from("Deploying Guice Cassandra")
 statuses.addPendingStatus(deployingGuiceCassandra)
@@ -504,7 +498,7 @@ statuses.addPendingStatus(deployingSpringJPA)
 deployingGuiceDemoTesting = commitStatusFactory.from("Deploying Guice JPA with data provision")
 statuses.addPendingStatus(deployingGuiceDemoTesting)
 
-testingGuiceCassandraRabbitMQ = commitStatusFactory.from("Integrating Guice Cassandra  + RabbitMQ + object store")
+testingGuiceCassandraRabbitMQ = commitStatusFactory.from("Integrating Guice Cassandra  + RabbitMQ + Swift")
 statuses.addPendingStatus(testingGuiceCassandraRabbitMQ)
 testingGuiceCassandra = commitStatusFactory.from("Integrating Guice Cassandra")
 statuses.addPendingStatus(testingGuiceCassandra)
@@ -709,31 +703,19 @@ def deployGuiceCassandra() {
 }
 
 def deployGuiceRabbitMQ() {
-    //Dockering Guice Server with Cassandra + RabbitMQ + object store + Ldap
+    //Dockering Guice Server with Cassandra + RabbitMQ + Swift + Ldap
     copyFilesFromCompilationContainer(productCassandraRabbitMQLdap, jarPathCassandraRabbitMQLdap, libPathCassandraRabbitMQLdap)
 
     sh "cd dockerfiles/run/guice/cassandra-rabbitmq-ldap; docker build --tag=${images.jamesCassandraRabbitMQLdap} ."
 
-    // Deploying Guice Server with Cassandra + RabbitMQ + object store
+    //Deploying Guice Server with Cassandra + RabbitMQ + Swift
     copyFilesFromCompilationContainer(productCassandraRabbitMQ, jarPathCassandraRabbitMQ, libPathCassandraRabbitMQ)
     sh "docker run --detach=true --name=${containers.rabbitmq} ${images.rabbitmq}"
-
-    Properties properties = new Properties()
-    File propertiesFile = new File('dockerfiles/run/guice/cassandra-rabbitmq-ldap/destination/conf/blob.properties')
-    propertiesFile.withInputStream {
-        properties.load(it)
-    }
-    if (properties."implementation" == "s3") {
-        rabbitmqBlobLinks = rabbitmqS3Links
-        sh "docker run --detach=true --name=${containers.s3} ${images.s3}"
-    } else {
-        rabbitmqBlobLinks = rabbitmqSwiftLinks
-        sh "docker run --detach=true --name=${containers.swift} ${images.swift}"
-    }
+    sh "docker run --detach=true --name=${containers.swift} ${images.swift}"
 
     sh "cd dockerfiles/run/guice/cassandra-rabbitmq; docker build --tag=${images.jamesCassandraRabbitMQ} ."
 
-    sh "docker run --detach=true --name=${containers.jamesCassandraRabbitMQ} --hostname ${hostname} --expose=${IMAP_PORT} --expose=${SMTP_PORT} --publish-all=true ${jamesLinks} ${rabbitmqBlobLinks} ${images.jamesCassandraRabbitMQ}"
+    sh "docker run --detach=true --name=${containers.jamesCassandraRabbitMQ} --hostname ${hostname} --expose=${IMAP_PORT} --expose=${SMTP_PORT} --publish-all=true ${jamesLinks} ${rabbitmqSwiftLinks} ${images.jamesCassandraRabbitMQ}"
 
     echo 'Waiting for James server to be deployed'
     try {
@@ -746,7 +728,7 @@ def deployGuiceRabbitMQ() {
 def testGuiceRabbitMQ() {
     provisionDataForIntegrationTest("${containers.jamesCassandraRabbitMQ}", "${jamesCliWithOptions}")
 
-    echo "Running integration tests on Cassandra + RabbitMQ + object store on ${buildId}"
+    echo "Running integration tests on Cassandra + RabbitMQ + Swift on ${buildId}"
     def jamesCassandraRabbitMQIp = containerIp("${containers.jamesCassandraRabbitMQ}")
     sh "docker run ${verbose} ${m2mount} --name=${containers.integrationCassandraRabbitMQ} ${batchModeEnv} --entrypoint=\"/root/integration_tests.sh\" --volumes-from=${containers.gitPublish} ${images.jamesCompile} ${jamesCassandraRabbitMQIp} ${IMAP_PORT} ${SMTP_PORT} ${sha1ToBuild}"
 }
