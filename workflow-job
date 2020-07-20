@@ -714,7 +714,7 @@ def readBlobStoreImplementation() {
         return "swift"
     }
     Properties properties = new Properties()
-    File propertiesFile = new File(blobStoreFileName)
+    File propertiesFile = new File("${workspace}/${blobStoreFileName}")
     propertiesFile.withInputStream {
         properties.load(it)
     }
