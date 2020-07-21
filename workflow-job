@@ -713,8 +713,13 @@ def readBlobStoreImplementation() {
     if (!fileExists(blobStoreFileName)) {
         return "swift"
     }
-    properties = readProperties file: blobStoreFileName
-    return properties["implementation"]
+    Properties properties = new Properties()
+    File propertiesFile = new File("${workspace}/${blobStoreFileName}")
+    propertiesFile.withInputStream {
+        properties.load(it)
+    }
+
+    return properties.getProperty("implementation", "swift")
 }
 
 def startObjectStore() {
