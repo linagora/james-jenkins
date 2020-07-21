@@ -720,7 +720,6 @@ def readBlobStoreImplementation() {
     }
 
     return properties.getProperty("implementation", "swift")
-}
 
 def startObjectStore() {
     switch (readBlobStoreImplementation()) {
