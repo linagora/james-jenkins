@@ -2,8 +2,7 @@ FROM jenkins:1.642.4
 
 USER root
 
-RUN sed -i 's;http://archive.debian.org/debian/;http://deb.debian.org/debian/;' /etc/apt/sources.list \
-    && echo "deb http://archive.debian.org/debian jessie main" > /etc/apt/sources.list \
+RUN echo "deb http://deb.debian.org/debian jessie main" > /etc/apt/sources.list \
     && rm /etc/apt/sources.list.d/jessie-backports.list
 
 RUN apt-get update \
