@@ -2,9 +2,9 @@ FROM jenkins:1.642.4
 
 USER root
 
-RUN echo "deb http://archive.debian.org/debian jessie main" > /etc/apt/sources.list \
-    && rm /etc/apt/sources.list.d/jessie-backports.list \
-    && sed -i 's;http://archive.debian.org/debian/;http://deb.debian.org/debian/;' /etc/apt/sources.list
+RUN sed -i 's;http://archive.debian.org/debian/;http://deb.debian.org/debian/;' /etc/apt/sources.list \
+    && echo "deb http://archive.debian.org/debian jessie main" > /etc/apt/sources.list \
+    && rm /etc/apt/sources.list.d/jessie-backports.list
 
 RUN apt-get update \
     && apt-get install --force-yes -y apt-transport-https ca-certificates curl gnupg-agent software-properties-common sudo \
