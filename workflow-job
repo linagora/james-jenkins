@@ -169,7 +169,7 @@ class Images implements Serializable {
         elasticSearch = properties."elasticSearch" ?: 'docker.elastic.co/elasticsearch/elasticsearch:6.3.2'
         rabbitmq = properties."rabbitmq" ?: 'rabbitmq:3.8.1-management'
         swift = properties."swift" ?: 'linagora/openstack-keystone-swift:pike'
-        s3 = properties."s3" ?: 'scality/s3server:mem-6018536a'
+        s3 = properties."s3" ?: 'zenko/cloudserver:8.2.6'
     }
 
     def fromFile(def node, def file) {
@@ -453,7 +453,7 @@ buildId = "${workingBranch.toLowerCase()}-${UUID.randomUUID()}"
 mergeBranch = "MERGE-${buildId}"
 containers = new Containers(buildId)
 jamesLinks = "--link ${containers.cassandra}:cassandra --link ${containers.elasticSearch}:elasticsearch"
-rabbitmqS3Links = "--link ${containers.rabbitmq}:rabbitmq --link ${containers.s3}:s3"
+rabbitmqS3Links = "--link ${containers.rabbitmq}:rabbitmq --link ${containers.s3}:s3.docker.test"
 rabbitmqSwiftLinks = "--link ${containers.rabbitmq}:rabbitmq --link ${containers.swift}:swift"
 m2volume = "m2-${buildId}"
 m2mount = "--volume ${m2volume}:/root/.m2"
@@ -719,7 +719,8 @@ def readBlobStoreImplementation() {
 def startObjectStore() {
     switch (readBlobStoreImplementation()) {
         case "s3":
-            sh "docker run --detach=true --name=${containers.s3} ${images.s3}"
+            s3_envs = "--env SCALITY_ACCESS_KEY_ID=accessKey1 --env SCALITY_SECRET_ACCESS_KEY=secretKey1 --env S3BACKEND=mem"
+            sh "docker run --detach=true --name=${containers.s3} ${s3_envs} ${images.s3}"
             return rabbitmqS3Links
         default:
             sh "docker run --detach=true --name=${containers.swift} ${images.swift}"
