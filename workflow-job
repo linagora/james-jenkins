@@ -719,7 +719,7 @@ def readBlobStoreImplementation() {
 def startObjectStore() {
     switch (readBlobStoreImplementation()) {
         case "s3":
-            s3_envs = "--env SCALITY_ACCESS_KEY_ID=accessKey1 --env SCALITY_SECRET_ACCESS_KEY=secretKey1 --env S3BACKEND=mem"
+            s3_envs = "--env SCALITY_ACCESS_KEY_ID=accessKey1 --env SCALITY_SECRET_ACCESS_KEY=secretKey1 --env S3BACKEND=mem --env ENDPOINT=s3.docker.test"
             sh "docker run --detach=true --name=${containers.s3} ${s3_envs} ${images.s3}"
             return rabbitmqS3Links
         default:
