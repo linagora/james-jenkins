@@ -18,6 +18,7 @@ hostname = 'james.linagora.com'
 maxRetries = 120
 IMAP_PORT = 143
 SMTP_PORT = 587
+S3_PORT = 8000
 author = extractUsername()
 authorParentURL = "https://github.com/${author}/james-project.git"
 repoName = extractRepoName()
@@ -719,8 +720,8 @@ def readBlobStoreImplementation() {
 def startObjectStore() {
     switch (readBlobStoreImplementation()) {
         case "s3":
-            s3_envs = "--env SCALITY_ACCESS_KEY_ID=accessKey1 --env SCALITY_SECRET_ACCESS_KEY=secretKey1 --env S3BACKEND=mem --env ENDPOINT=s3.docker.test"
-            sh "docker run --detach=true --name=${containers.s3} ${s3_envs} ${images.s3}"
+            s3_envs = "--env SCALITY_ACCESS_KEY_ID=accessKey1 --env SCALITY_SECRET_ACCESS_KEY=secretKey1 --env S3BACKEND=mem --env ENDPOINT=s3.docker.test --env REMOTE_MANAGEMENT_DISABLE=1"
+            sh "docker run --detach=true --expose=${S3_PORT} --name=${containers.s3} ${s3_envs} ${images.s3}"
             return rabbitmqS3Links
         default:
             sh "docker run --detach=true --name=${containers.swift} ${images.swift}"
