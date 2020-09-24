@@ -141,3 +141,24 @@ repoURL=<yours_repository>
 branch=<yours_branch>
 sha1=<your_last_commit_id_at_branch> 
 version=<the_James_version_of_this_branch>
+
+=== Tools
+
+==== Prometheus
+
+Prometheus plugin is automatically installed when starting Jenkins from the Dockerfile. 
+This plugin is exporting lot of metrics from Jenkins, in order to read those metrics, you can start Prometheus in docker:
+
+----
+$ docker run -d -p 9090:9090 -v $PWD/prometheus.yml:/etc/prometheus/prometheus.yml --name prometheus prom/prometheus
+----
+
+==== Grafana
+
+If you want to have an UI based on the metrics contained by Prometheus, you can install Grafana in docker:
+
+----
+$ docker run -d -p 3000:3000 --name grafana grafana/grafana
+----
+
+then, you will have to create a Prometheus database from default pattern and import some board (for example: 9964).
