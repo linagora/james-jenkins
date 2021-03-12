@@ -281,14 +281,14 @@ productMemory = 'memory'
 jarPathCassandra = pathInDestination(productCassandra, 'james-server-cassandra-guice.jar')
 libPathCassandra = pathInDestination(productCassandra, 'james-server-cassandra-guice.lib')
 
-jarPathCassandraLdap = pathInDestination(productCassandra, 'james-server-cassandra-ldap-guice.jar')
-libPathCassandraLdap = pathInDestination(productCassandra, 'james-server-cassandra-ldap-guice.lib')
+jarPathCassandraLdap = pathInDestination(productCassandra, 'james-server-cassandra-guice.jar')
+libPathCassandraLdap = pathInDestination(productCassandra, 'james-server-cassandra-guice.lib')
 
 jarPathCassandraRabbitMQ = pathInDestination(productCassandraRabbitMQ, 'james-server-cassandra-rabbitmq-guice.jar')
 libPathCassandraRabbitMQ = pathInDestination(productCassandraRabbitMQ, 'james-server-cassandra-rabbitmq-guice.lib')
 
-jarPathCassandraRabbitMQLdap = pathInDestination(productCassandraRabbitMQLdap, 'james-server-cassandra-rabbitmq-ldap-guice.jar')
-libPathCassandraRabbitMQLdap = pathInDestination(productCassandraRabbitMQLdap, 'james-server-cassandra-rabbitmq-ldap-guice.lib')
+jarPathCassandraRabbitMQLdap = pathInDestination(productCassandraRabbitMQLdap, 'james-server-cassandra-rabbitmq-guice.jar')
+libPathCassandraRabbitMQLdap = pathInDestination(productCassandraRabbitMQLdap, 'james-server-cassandra-rabbitmq-guice.lib')
 
 jarPathJPA = pathInDestination(productJPA, 'james-server-jpa-guice.jar')
 libPathJPA = pathInDestination(productJPA, 'james-server-jpa-guice.lib')
