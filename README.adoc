@@ -1,3 +1,9 @@
+**Deprecation notice**: This project relies on an outdated Jenkins version, subject to many vulnerabilities.
+
+It is furthermore complex to maintain.
+
+The Apache James project had been contributing a Jenkins2 pipeline that should be used instead.
+
 = Immutable CI
 
 == Summary
